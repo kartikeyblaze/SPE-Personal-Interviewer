@@ -47,15 +47,18 @@ This document outlines the strategy for decomposing the "Personal-Interviewer" m
 - [ ] Initialize directory structure.
 
 ### Phase 2: Decomposition & Containerization
-- [ ] Extract **Auth Service** (Logic from `userController.js` and `User.js`).
-- [ ] Extract **Interview Service** (Logic from `userController.js`, `chat.js`, `questions.js`, `gemini.js`).
-- [ ] Create Dockerfiles for all services.
-- [ ] Configure `docker-compose` for local integration testing.
+- [x] Extract **Auth Service** (Logic from `userController.js` and `User.js`).
+- [x] Extract **Interview Service** (Logic from `userController.js`, `chat.js`, `questions.js`, `gemini.js`).
+- [x] Create Dockerfiles for all services.
+- [x] Configure `docker-compose` for local integration testing.
+- [x] Refine `userApi.jsx` routes for microservice compatibility.
 
 ### Phase 3: CI/CD & Orchestration
-- [ ] Set up Jenkins Pipeline (`Jenkinsfile`).
-- [ ] Write Ansible playbooks for K8s deployment.
-- [ ] Create K8s manifests (Deployment, Service, Ingress, Secrets).
+- [x] Set up Jenkins Pipeline (`Jenkinsfile`).
+- [x] Write Ansible playbooks for K8s deployment.
+- [x] Create K8s manifests (Deployment, Service, Ingress, Secrets).
+- [x] Add `kustomization.yaml` for resource management.
+- [x] Create `setup-minikube.sh` script.
 - [ ] Test pull from Docker Hub in Minikube.
 
 ### Phase 4: Validation
