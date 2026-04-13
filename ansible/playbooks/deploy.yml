@@ -1,0 +1,22 @@
+---
+- name: Deploy Microservices to Minikube
+  hosts: localhost
+  vars:
+    image_tag: "latest"
+    docker_hub_user: "your-docker-hub-username"
+  
+  tasks:
+    - name: Apply Auth Service Manifest
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('template', '../../k8s/base/auth-deployment.yaml.j2') }}"
+    
+    - name: Apply Interview Service Manifest
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('template', '../../k8s/base/interview-deployment.yaml.j2') }}"
+
+    - name: Apply Frontend Service Manifest
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('template', '../../k8s/base/frontend-deployment.yaml.j2') }}"

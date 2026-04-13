@@ -1,0 +1,46 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_HUB_USER = 'your-docker-hub-username'
+        IMAGE_AUTH = "${DOCKER_HUB_USER}/auth-service"
+        IMAGE_INTERVIEW = "${DOCKER_HUB_USER}/interview-service"
+        IMAGE_FRONTEND = "${DOCKER_HUB_USER}/frontend-service"
+    }
+
+    stages {
+        stage('Build') {
+            steps {
+                script {
+                    sh "docker build -t ${IMAGE_AUTH}:${BUILD_NUMBER} services/auth"
+                    sh "docker build -t ${IMAGE_INTERVIEW}:${BUILD_NUMBER} services/interview"
+                    sh "docker build -t ${IMAGE_FRONTEND}:${BUILD_NUMBER} services/frontend"
+                }
+            }
+        }
+
+        stage('Security Scan') {
+            steps {
+                echo 'Running Trivy scan...'
+                // sh "trivy image ${IMAGE_AUTH}:${BUILD_NUMBER}"
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
+                    sh "docker login -u ${USER} -p ${PASS}"
+                    sh "docker push ${IMAGE_AUTH}:${BUILD_NUMBER}"
+                    sh "docker push ${IMAGE_INTERVIEW}:${BUILD_NUMBER}"
+                    sh "docker push ${IMAGE_FRONTEND}:${BUILD_NUMBER}"
+                }
+            }
+        }
+
+        stage('Deploy with Ansible') {
+            steps {
+                sh "ansible-playbook ansible/playbooks/deploy.yml -e image_tag=${BUILD_NUMBER}"
+            }
+        }
+    }
+}
