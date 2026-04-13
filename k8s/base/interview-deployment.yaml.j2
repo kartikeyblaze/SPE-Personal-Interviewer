@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: interview-service
+  labels:
+    app: interview-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: interview-service
+  template:
+    metadata:
+      labels:
+        app: interview-service
+    spec:
+      containers:
+      - name: interview-service
+        image: "{{ docker_hub_user }}/interview-service:{{ image_tag }}"
+        ports:
+        - containerPort: 5002
+        env:
+        - name: API_KEY_GEMINI
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: gemini-api-key
+        - name: MONGO_URI
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: mongo-uri
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: jwt-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: interview-service
+spec:
+  selector:
+    app: interview-service
+  ports:
+  - protocol: TCP
+    port: 5002
+    targetPort: 5002
