@@ -17,7 +17,11 @@ app.get("/api/interview/results", protect, async (req, res) => {
     const user = req.email;
     if (!user) return res.status(400).json({ message: "User parameter is required" });
     const userInterviews = await Interview.find({ user }, 'topic interviewData');
-    res.json(userInterviews.length > 0 ? userInterviews : { message: "No topics found" });
+    if (userInterviews.length > 0) {
+      res.json(userInterviews);
+    } else {
+      res.status(404).json({ message: "No topics found for the specified user" });
+    }
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -43,7 +47,25 @@ app.post("/api/interview/gemini", protect, async (req, res) => {
     if (!apiKey) return res.status(500).json({ error: "API key not found" });
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const prompt = `Given the input "${req.body.body}". Now check the syllabus for this interview and find questions and store them, provided a sample JSON object... (omitted for brevity)`;
+    const prompt = `Given the input "${req.body.body}". Now check the syllabus for this interview and find questions and store them ,provided a sample JSON object with the following format:
+
+{
+  "OSI": [
+    "Question 1 about OSI?",
+    "Question 2 about OSI?",
+    "Question 3 about OSI?"
+  ],
+  "OI": [
+    "Question 1 about OI?",
+    "Question 2 about OSI?",
+    "Question 3 about OSI?"
+  ]
+};
+
+Ensure the response includes 3 questions from each topic one easy one medium and one hard and atleast 5 topics, 
+
+Return ONLY the JSON object, with no additional text.
+ `;
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const result = await model.generateContent(prompt);
     res.send(JSON.parse(result.response.text()));
