@@ -1,15 +1,15 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api/users'; // Replace with your backend URL
+// Use environment variables or default to local microservice ports
+const AUTH_API_URL = import.meta.env.VITE_AUTH_API_URL || 'http://localhost:5001/api/auth';
+const INTERVIEW_API_URL = import.meta.env.VITE_INTERVIEW_API_URL || 'http://localhost:5002/api/interview';
 
 // Function to register a new user
 export const registerUser = async (userData) => {
   try {
-    const response = await axios.post(`${API_URL}/register`, userData);
-    // Return the successful response data
+    const response = await axios.post(`${AUTH_API_URL}/register`, userData);
     return response.data;
   } catch (error) {    
-    // Log and throw other errors
     console.log(error);
     throw new Error(error.response ? error.response.data.message : error.message);
   }
@@ -18,7 +18,7 @@ export const registerUser = async (userData) => {
 // Function to login a user
 export const loginUser = async (userData) => {
   try {
-    const response = await axios.post(`${API_URL}/login`, userData);
+    const response = await axios.post(`${AUTH_API_URL}/login`, userData);
     return response.data;
   } catch (error) {
     throw new Error(error.response ? error.response.data.message : error.message);
@@ -27,37 +27,30 @@ export const loginUser = async (userData) => {
 
 export const results = async () => {
   try {
-    const response = await axios.get(`${API_URL}/results`,{headers:{"authorization":JSON.parse(localStorage.getItem("loggedinuser"))}}); // Call backend API
-    // console.log(response.data);
-    return response.data; // Return the array of questions
+    const response = await axios.get(`${INTERVIEW_API_URL}/results`,{headers:{"authorization":JSON.parse(localStorage.getItem("loggedinuser"))}}); 
+    return response.data; 
   } catch (error) {
     console.error("Error fetching questions:", error);
     return [];
   }
 };
 
-
 export const gemini = async(prompt)=>{
   try {
-    console.log(prompt);
-    const response = await axios.post(`${API_URL}/gemini`,prompt,{headers:{"authorization":JSON.parse(localStorage.getItem("loggedinuser"))}}); // Call backend API
-    
-    return response.data; // Return the array of questions
+    const response = await axios.post(`${INTERVIEW_API_URL}/gemini`,prompt,{headers:{"authorization":JSON.parse(localStorage.getItem("loggedinuser"))}}); 
+    return response.data; 
   } catch (error) {
-    console.error("Error in string the questions in database", error);
+    console.error("Error in fetching gemini questions", error);
     return [];
   }
 }
 
-
 export const chat = async(prompt)=>{
   try {
-    console.log(prompt);
-    const response = await axios.post(`${API_URL}/chat`,prompt,{headers:{"authorization":JSON.parse(localStorage.getItem("loggedinuser"))}}); // Call backend API
-    
-    return response.data; // Return the array of questions
+    const response = await axios.post(`${INTERVIEW_API_URL}/chat`,prompt,{headers:{"authorization":JSON.parse(localStorage.getItem("loggedinuser"))}}); 
+    return response.data; 
   } catch (error) {
-    console.error("Error in string the questions in database", error);
+    console.error("Error in saving chat", error);
     return [];
   }
 }
