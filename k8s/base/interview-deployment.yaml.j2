@@ -19,6 +19,25 @@ spec:
         image: "{{ docker_hub_user }}/interview-service:{{ image_tag }}"
         ports:
         - containerPort: 5002
+        livenessProbe:
+          httpGet:
+            path: /api/interview/results
+            port: 5002
+          initialDelaySeconds: 20
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /api/interview/results
+            port: 5002
+          initialDelaySeconds: 10
+          periodSeconds: 15
+        resources:
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
         env:
         - name: API_KEY_GEMINI
           valueFrom:
@@ -26,10 +45,7 @@ spec:
               name: app-secrets
               key: gemini-api-key
         - name: MONGO_URI
-          valueFrom:
-            secretKeyRef:
-              name: app-secrets
-              key: mongo-uri
+          value: "mongodb://mongodb:27017/interview_db"
         - name: JWT_SECRET
           valueFrom:
             secretKeyRef:

@@ -1,115 +1,75 @@
-# Personal Interviewer AI
+# Scholar's Study | Personal Interviewer AI
 
-An AI-driven personal interview preparation platform that uses Google Gemini AI to generate customized interview questions and simulate real-world interview scenarios.
+A deployment-ready, microservices-based AI interview preparation platform. Designed with a premium "Classical Academic" aesthetic, it leverages Google Gemini AI to simulate rigorous, personalized interview scenarios.
 
-## Features
+## 🏛️ Project Vision
+**"Scholar's Study"** moves away from generic tech aesthetics to provide a grounded, mentorship-focused environment. Interviews are treated as formal academic sessions, with results served as official transcripts.
 
-- **AI Question Generation**: Uses Google Gemini 1.5 Flash to generate industry-standard questions based on a specific topic or syllabus.
-- **Simulated Interview Environment**: Integrated with Speech-to-Text and Text-to-Voice for a natural interview experience.
-- **Progress Tracking**: Users can save their interview sessions and review past performance on the results page.
-- **Secure Authentication**: JWT-based authentication for secure user sessions and data management.
-- **Responsive UI**: A modern, clean user interface built with React and Vite.
+## 🏗️ Architecture
+The project is built on a robust microservices foundation:
+- **API Gateway (Nginx)**: The single entry point, handling routing and serving the frontend.
+- **Frontend Service (React + Tailwind + Framer Motion)**: A premium UI/UX experience with functional motion and organic earthy aesthetics.
+- **Auth Service (Node.js/Express)**: Manages secure user enrollment and JWT-based session persistence.
+- **Interview Service (Node.js/Express)**: Orchestrates the interview logic and integrates with the Google Gemini 1.5 Flash API.
+- **Database (MongoDB)**: Isolated logical databases (`auth_db` and `interview_db`) within a shared instance.
 
-## Tech Stack
-
-### Frontend
-- **Framework**: React.js (Vite)
-- **Routing**: React Router DOM
-- **Speech**: React Speech Recognition, Web Speech API
-- **State Management**: React Context API
-- **Communication**: Axios for API calls
-
-### Backend
-- **Server**: Node.js with Express.js
-- **Database**: MongoDB (Mongoose ODM)
-- **AI Integration**: Google Generative AI (Gemini 1.5 Flash)
-- **Security**: JSON Web Tokens (JWT) & Bcrypt for password hashing
+## 🛡️ DevOps & Security
+- **Containerization**: Fully Dockerized with optimized `Dockerfiles`.
+- **Orchestration**: `docker-compose.yml` with native healthchecks and isolated networks (`frontend-nw`, `backend-nw`).
+- **CI/CD**: Jenkins pipeline for building, scanning, and pushing images.
+- **Automation**: Ansible playbooks for secret management and automated deployments.
+- **Security**: Hardened with `helmet`, `cors` management, and isolated environment variables.
 
 ---
 
-## Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js (v18+)
-- MongoDB Atlas account or local MongoDB instance
-- Google Gemini API Key (Get one from [Google AI Studio](https://aistudio.google.com/))
+- **Docker & Docker Compose V2**
+- **Google Gemini API Key** (Get one from [Google AI Studio](https://aistudio.google.com/))
 
-### Installation
+### Quick Start (Local Deployment)
 
-1. **Clone the repository:**
-   ```bash
-   git clone <repository-url>
-   cd Personal-Interviewer
-   ```
+1.  **Clone & Prepare Secrets:**
+    ```bash
+    git clone <repository-url>
+    cd major-project
+    cp .env.example .env
+    ```
+    *Edit the `.env` file and provide your `JWT_SECRET` and `API_KEY_GEMINI`.*
 
-2. **Backend Setup:**
-   - Navigate to the server directory:
-     ```bash
-     cd server
-     ```
-   - Install dependencies:
-     ```bash
-     npm install
-     ```
-   - Create a `.env` file in the `server` folder:
-     ```env
-     PORT=5000
-     MONGO_URI=your_mongodb_connection_string
-     API_KEY_GEMINI=your_gemini_api_key
-     JWT_SECRET=your_jwt_secret_key
-     ```
-   - Start the server:
-     ```bash
-     npm run start
-     ```
+2.  **Launch the Stack:**
+    ```bash
+    docker-compose up --build
+    ```
 
-3. **Frontend Setup:**
-   - Navigate to the frontend directory:
-     ```bash
-     cd ../my-vite-app
-     ```
-   - Install dependencies:
-     ```bash
-     npm install
-     ```
-   - Start the development server:
-     ```bash
-     npm run dev
-     ```
+3.  **Enter the Study:**
+    Access the application at [http://localhost](http://localhost).
 
 ---
 
-## Directory Structure
+## 📖 Directory Structure
 
 ```text
-Personal-Interviewer/
-├── my-vite-app/           # React frontend (Vite)
-│   ├── src/
-│   │   ├── components/    # UI components (Interview, Login, Results, etc.)
-│   │   ├── api/           # API service layers
-│   │   └── App.jsx        # Routing and entry point
-├── server/                # Node.js backend
-│   ├── controllers/       # Business logic (User & Interview management)
-│   ├── models/            # MongoDB Schemas (User, Chat, Questions)
-│   ├── routes/            # API Endpoints
-│   ├── config/            # Database configuration
-│   └── server.js          # Entry point
-└── README.md
+major-project/
+├── services/
+│   ├── auth/           # Auth Microservice
+│   ├── interview/      # Interview Microservice
+│   └── frontend/       # React/Tailwind Frontend
+├── nginx/              # API Gateway Configuration
+├── ansible/            # Deployment & Secret Automation
+├── jenkins/            # CI Pipeline Logic
+├── k8s/                # Production Kubernetes Manifests
+└── docker-compose.yml  # Local Orchestration
 ```
 
-## How to Use
-
-1. **Sign Up / Login**: Create an account or log in with your credentials.
-2. **Start Interview**: Navigate to the interview section and specify a topic (e.g., OSI Models, React Hooks).
-3. **Mock Interview**: The AI will generate questions. Use the voice input to respond.
-4. **View Results**: Check the results section to see your performance history and saved interview data.
+## 🛠️ Tech Stack
+- **Frontend**: React (Vite), Tailwind CSS, Framer Motion, Lucide Icons.
+- **Backend**: Node.js, Express, Mongoose.
+- **AI**: Google Generative AI (Gemini 1.5 Flash).
+- **Infra**: Nginx, Docker, Ansible, Jenkins, MongoDB.
 
 ---
 
-## Contributing
-
-Contributions are welcome! Please fork the repository and submit a pull request for any improvements or bug fixes.
-
-## License
-
+## 📜 License
 This project is licensed under the ISC License.
