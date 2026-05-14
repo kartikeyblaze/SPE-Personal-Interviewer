@@ -3,3 +3,8 @@ implementation-plan.md
 .~lock.*
 *.log
 .env
+reports/
+report/
+*.sarif
+*.sbom.json
+*.cdx.json

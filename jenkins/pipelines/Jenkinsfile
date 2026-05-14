@@ -6,9 +6,87 @@ pipeline {
         IMAGE_AUTH = "${DOCKER_HUB_USER}/auth-service"
         IMAGE_INTERVIEW = "${DOCKER_HUB_USER}/interview-service"
         IMAGE_FRONTEND = "${DOCKER_HUB_USER}/frontend-service"
+        SECURITY_REPORT_DIR = 'reports/security'
+        SECURITY_SEVERITY = 'HIGH,CRITICAL'
+        APP_BASE_URL = 'http://localhost'
     }
 
     stages {
+        stage('Prepare Security Reports') {
+            steps {
+                sh 'mkdir -p "${SECURITY_REPORT_DIR}"'
+            }
+        }
+
+        stage('Secret Scan') {
+            steps {
+                sh '''
+                docker run --rm \
+                    -v "$WORKSPACE:/repo" \
+                    -w /repo \
+                    zricethezav/gitleaks:latest detect \
+                    --source=/repo \
+                    --report-format=json \
+                    --report-path="${SECURITY_REPORT_DIR}/gitleaks.json" \
+                    --redact \
+                    --exit-code=1
+                '''
+            }
+        }
+
+        stage('SCA Filesystem Scan') {
+            steps {
+                sh '''
+                docker run --rm \
+                    -v "$WORKSPACE:/repo" \
+                    -v trivy-cache:/root/.cache/ \
+                    -w /repo \
+                    aquasec/trivy:latest fs \
+                    --scanners vuln \
+                    --severity "${SECURITY_SEVERITY}" \
+                    --format json \
+                    --output "${SECURITY_REPORT_DIR}/trivy-fs.json" \
+                    --exit-code 1 \
+                    services
+                '''
+            }
+        }
+
+        stage('SAST Scan') {
+            steps {
+                sh '''
+                docker run --rm \
+                    -v "$WORKSPACE:/src" \
+                    -w /src \
+                    semgrep/semgrep:latest semgrep scan \
+                    --config p/owasp-top-ten \
+                    --config p/nodejs \
+                    --severity ERROR \
+                    --sarif \
+                    --output "${SECURITY_REPORT_DIR}/semgrep.sarif" \
+                    --error \
+                    services
+                '''
+            }
+        }
+
+        stage('IaC Scan') {
+            steps {
+                sh '''
+                docker run --rm \
+                    -v "$WORKSPACE:/repo" \
+                    -v trivy-cache:/root/.cache/ \
+                    -w /repo \
+                    aquasec/trivy:latest config \
+                    --severity "${SECURITY_SEVERITY}" \
+                    --format json \
+                    --output "${SECURITY_REPORT_DIR}/trivy-iac.json" \
+                    --exit-code 1 \
+                    .
+                '''
+            }
+        }
+
         stage('Build') {
             steps {
                 script {
@@ -19,17 +97,52 @@ pipeline {
             }
         }
 
-        stage('Security Scan') {
+        stage('Container Image Scan') {
             steps {
-                echo 'Running Trivy scan...'
-                // sh "trivy image ${IMAGE_AUTH}:${BUILD_NUMBER}"
+                sh '''
+                docker run --rm \
+                    -v /var/run/docker.sock:/var/run/docker.sock \
+                    -v "$WORKSPACE:/repo" \
+                    -v trivy-cache:/root/.cache/ \
+                    -w /repo \
+                    aquasec/trivy:latest image \
+                    --severity "${SECURITY_SEVERITY}" \
+                    --format json \
+                    --output "${SECURITY_REPORT_DIR}/trivy-auth-image.json" \
+                    --exit-code 1 \
+                    "${IMAGE_AUTH}:${BUILD_NUMBER}"
+
+                docker run --rm \
+                    -v /var/run/docker.sock:/var/run/docker.sock \
+                    -v "$WORKSPACE:/repo" \
+                    -v trivy-cache:/root/.cache/ \
+                    -w /repo \
+                    aquasec/trivy:latest image \
+                    --severity "${SECURITY_SEVERITY}" \
+                    --format json \
+                    --output "${SECURITY_REPORT_DIR}/trivy-interview-image.json" \
+                    --exit-code 1 \
+                    "${IMAGE_INTERVIEW}:${BUILD_NUMBER}"
+
+                docker run --rm \
+                    -v /var/run/docker.sock:/var/run/docker.sock \
+                    -v "$WORKSPACE:/repo" \
+                    -v trivy-cache:/root/.cache/ \
+                    -w /repo \
+                    aquasec/trivy:latest image \
+                    --severity "${SECURITY_SEVERITY}" \
+                    --format json \
+                    --output "${SECURITY_REPORT_DIR}/trivy-frontend-image.json" \
+                    --exit-code 1 \
+                    "${IMAGE_FRONTEND}:${BUILD_NUMBER}"
+                '''
             }
         }
 
         stage('Push to Docker Hub') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
-                    sh "docker login -u ${USER} -p ${PASS}"
+                    sh 'echo "$PASS" | docker login -u "$USER" --password-stdin'
                     sh "docker push ${IMAGE_AUTH}:${BUILD_NUMBER}"
                     sh "docker push ${IMAGE_INTERVIEW}:${BUILD_NUMBER}"
                     sh "docker push ${IMAGE_FRONTEND}:${BUILD_NUMBER}"
@@ -41,16 +154,40 @@ pipeline {
             steps {
                 withCredentials([
                     string(credentialsId: 'jwt-secret', variable: 'JWT_SECRET'),
-                    string(credentialsId: 'gemini-api-key', variable: 'GEMINI_API_KEY')
+                    string(credentialsId: 'groq-api-key', variable: 'GROQ_API_KEY')
                 ]) {
-                    sh """
+                    sh '''
                     ansible-playbook ansible/playbooks/deploy-compose.yml \
                         -e image_tag=${BUILD_NUMBER} \
-                        -e jwt_secret=${JWT_SECRET} \
-                        -e api_key_gemini=${GEMINI_API_KEY}
-                    """
+                        -e jwt_secret="$JWT_SECRET" \
+                        -e groq_api_key="$GROQ_API_KEY"
+                    '''
                 }
             }
+        }
+
+        stage('DAST Baseline Scan') {
+            steps {
+                sh '''
+                curl -fsS --retry 12 --retry-all-errors --retry-delay 5 "${APP_BASE_URL}/api/interview/health"
+
+                docker run --rm \
+                    --network host \
+                    -v "$WORKSPACE/${SECURITY_REPORT_DIR}:/zap/wrk" \
+                    zaproxy/zap-stable:latest zap-baseline.py \
+                    -t "${APP_BASE_URL}" \
+                    -r zap-baseline.html \
+                    -J zap-baseline.json \
+                    -w zap-baseline.md \
+                    -I
+                '''
+            }
+        }
+    }
+
+    post {
+        always {
+            archiveArtifacts artifacts: 'reports/security/**/*', allowEmptyArchive: true
         }
     }
 }
