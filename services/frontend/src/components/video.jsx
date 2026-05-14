@@ -47,7 +47,6 @@ export const Video = forwardRef((props, ref) => {
     setRecordings([]);
   };
 
-  // Expose startRecording, stopRecording, and handleClearRecording to the parent component
   useImperativeHandle(ref, () => ({
     startRecording,
     stopRecording,
@@ -55,13 +54,22 @@ export const Video = forwardRef((props, ref) => {
   }));
 
   return (
-    <div className="video-interface">
+    <div className="relative w-full h-full bg-scholar-brown/20 flex items-center justify-center overflow-hidden">
       <video
         ref={previewVideoRef}
         autoPlay
         muted
-        className="zoom-style-video" // Apply the zoom-style-video class here
-      ></video>
+        className="w-full h-full object-cover grayscale-[30%] sepia-[20%] brightness-[90%]"
+      />
+      {/* Decorative Corner Overlays */}
+      <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-scholar-cream/30 m-2" />
+      <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-scholar-cream/30 m-2" />
+      
+      {status === 'recording' && (
+        <div className="absolute top-4 right-4 flex items-center gap-2 px-3 py-1 bg-scholar-terracotta/80 text-scholar-cream text-[8px] uppercase tracking-widest rounded-full animate-pulse">
+          <div className="w-1.5 h-1.5 bg-scholar-cream rounded-full" /> Live Manuscript Capture
+        </div>
+      )}
     </div>
   );
 });
