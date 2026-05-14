@@ -1,4 +1,6 @@
 const express = require("express");
+const cors = require("cors");
+const helmet = require("helmet");
 const mongoose = require("mongoose");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const Interview = require("./chat");
@@ -8,6 +10,8 @@ const connectDB = require("./db");
 require("dotenv").config();
 
 const app = express();
+app.use(helmet());
+app.use(cors());
 app.use(express.json());
 
 connectDB();
