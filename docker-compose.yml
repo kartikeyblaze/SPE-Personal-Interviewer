@@ -16,10 +16,11 @@ services:
       - "5001:5001"
     environment:
       - MONGO_URI=mongodb://mongodb:27017/interview_db
-      - JWT_SECRET=your_jwt_secret_here
+      - JWT_SECRET=6cc6b66aa8fc3313a4e2197f0d4c6ae0d6e12ae1562af064fce99ea882e6b3b0
       - PORT=5001
     depends_on:
       - mongodb
+    restart: on_failure
 
   interview-service:
     build: ./services/interview
@@ -28,8 +29,8 @@ services:
       - "5002:5002"
     environment:
       - MONGO_URI=mongodb://mongodb:27017/interview_db
-      - JWT_SECRET=your_jwt_secret_here
-      - API_KEY_GEMINI=your_gemini_api_key_here
+      - JWT_SECRET=6cc6b66aa8fc3313a4e2197f0d4c6ae0d6e12ae1562af064fce99ea882e6b3b0
+      - API_KEY_GEMINI=AIzaSyCylR29FG55WvtbMzfAoUrr113ktnViXcA
       - PORT=5002
     depends_on:
       - mongodb
