@@ -1,8 +1,8 @@
 import axios from 'axios';
 
-// Use environment variables or default to local microservice ports
-const AUTH_API_URL = import.meta.env.VITE_AUTH_API_URL || 'http://localhost:5001/api/auth';
-const INTERVIEW_API_URL = import.meta.env.VITE_INTERVIEW_API_URL || 'http://localhost:5002/api/interview';
+// Use relative paths to be routed by the Nginx API Gateway
+const AUTH_API_URL = '/api/auth';
+const INTERVIEW_API_URL = '/api/interview';
 
 // Function to register a new user
 export const registerUser = async (userData) => {

@@ -8,41 +8,72 @@ services:
       - "27017:27017"
     volumes:
       - mongo-data:/data/db
+    networks:
+      - backend-nw
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   auth-service:
     build: ./services/auth
     container_name: auth-service
-    ports:
-      - "5001:5001"
     environment:
-      - MONGO_URI=mongodb://mongodb:27017/interview_db
-      - JWT_SECRET=6cc6b66aa8fc3313a4e2197f0d4c6ae0d6e12ae1562af064fce99ea882e6b3b0
+      - MONGO_URI=mongodb://mongodb:27017/auth_db
+      - JWT_SECRET=${JWT_SECRET}
       - PORT=5001
     depends_on:
-      - mongodb
+      mongodb:
+        condition: service_healthy
+    networks:
+      - backend-nw
     restart: on_failure
 
   interview-service:
     build: ./services/interview
     container_name: interview-service
-    ports:
-      - "5002:5002"
     environment:
       - MONGO_URI=mongodb://mongodb:27017/interview_db
-      - JWT_SECRET=6cc6b66aa8fc3313a4e2197f0d4c6ae0d6e12ae1562af064fce99ea882e6b3b0
-      - API_KEY_GEMINI=AIzaSyCylR29FG55WvtbMzfAoUrr113ktnViXcA
+      - JWT_SECRET=${JWT_SECRET}
+      - API_KEY_GEMINI=${API_KEY_GEMINI}
       - PORT=5002
     depends_on:
-      - mongodb
+      mongodb:
+        condition: service_healthy
+    networks:
+      - backend-nw
+    restart: on_failure
 
   frontend-service:
     build: ./services/frontend
     container_name: frontend-service
-    ports:
-      - "80:80"
     depends_on:
       - auth-service
       - interview-service
+    networks:
+      - frontend-nw
+    restart: on_failure
+
+  gateway:
+    image: nginx:latest
+    container_name: api-gateway
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend-service
+      - auth-service
+      - interview-service
+    networks:
+      - frontend-nw
+      - backend-nw
+
+networks:
+  frontend-nw:
+  backend-nw:
 
 volumes:
   mongo-data:
