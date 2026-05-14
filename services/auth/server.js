@@ -13,6 +13,11 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`, req.body);
+  next();
+});
+
 connectDB();
 
 app.post("/api/auth/register", async (req, res) => {
@@ -29,7 +34,8 @@ app.post("/api/auth/register", async (req, res) => {
     await newUser.save();
     res.status(201).json({ message: "User registered successfully!" });
   } catch (error) {
-    res.status(500).json({ message: "Server error" });
+    console.error("Registration error:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 });
 
@@ -42,10 +48,12 @@ app.post("/api/auth/login", async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
 
-    const token = jwt.sign({ email: user.email }, process.env.JWT_SECRET, { expiresIn: "1h" });
+    const secret = process.env.JWT_SECRET || "default_scholar_secret_123";
+    const token = jwt.sign({ email: user.email }, secret, { expiresIn: "1h" });
     res.json({ body: token });
   } catch (error) {
-    res.status(500).json({ message: "Server error" });
+    console.error("Login error:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 });
 

@@ -22,7 +22,7 @@ services:
     container_name: auth-service
     environment:
       - MONGO_URI=mongodb://mongodb:27017/auth_db
-      - JWT_SECRET=${JWT_SECRET}
+      - JWT_SECRET=${JWT_SECRET:-default_scholar_secret_123}
       - PORT=5001
     depends_on:
       mongodb:
@@ -36,8 +36,8 @@ services:
     container_name: interview-service
     environment:
       - MONGO_URI=mongodb://mongodb:27017/interview_db
-      - JWT_SECRET=${JWT_SECRET}
-      - API_KEY_GEMINI=${API_KEY_GEMINI}
+      - JWT_SECRET=${JWT_SECRET:-default_scholar_secret_123}
+      - API_KEY_GEMINI=${API_KEY_GEMINI:-no_key_provided}
       - PORT=5002
     depends_on:
       mongodb:

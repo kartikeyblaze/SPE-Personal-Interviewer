@@ -12,7 +12,8 @@ const protect = (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const secret = process.env.JWT_SECRET || "default_scholar_secret_123";
+    const decoded = jwt.verify(token, secret);
     req.email = decoded.email;
     next();
   } catch (error) {
