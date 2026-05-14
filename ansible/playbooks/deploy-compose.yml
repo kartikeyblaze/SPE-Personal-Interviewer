@@ -1,0 +1,28 @@
+---
+- name: Deploy Microservices with Docker Compose
+  hosts: localhost
+  connection: local
+  vars:
+    project_root: "{{ lookup('env', 'PWD') }}" # For local testing, usually a fixed path on a remote server
+
+  tasks:
+    - name: Ensure nginx directory exists
+      file:
+        path: "{{ project_root }}/nginx"
+        state: directory
+
+    - name: Copy nginx configuration
+      copy:
+        src: "{{ project_root }}/nginx/nginx.conf"
+        dest: "{{ project_root }}/nginx/nginx.conf"
+
+    - name: Generate .env file from template
+      template:
+        src: "../templates/.env.j2"
+        dest: "{{ project_root }}/.env"
+
+    - name: Pull latest images and start services
+      community.docker.docker_compose_v2:
+        project_src: "{{ project_root }}"
+        pull: always
+        state: present

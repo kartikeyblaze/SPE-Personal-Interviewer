@@ -39,7 +39,17 @@ pipeline {
 
         stage('Deploy with Ansible') {
             steps {
-                sh "ansible-playbook ansible/playbooks/deploy.yml -e image_tag=${BUILD_NUMBER}"
+                withCredentials([
+                    string(credentialsId: 'jwt-secret', variable: 'JWT_SECRET'),
+                    string(credentialsId: 'gemini-api-key', variable: 'GEMINI_API_KEY')
+                ]) {
+                    sh """
+                    ansible-playbook ansible/playbooks/deploy-compose.yml \
+                        -e image_tag=${BUILD_NUMBER} \
+                        -e jwt_secret=${JWT_SECRET} \
+                        -e api_key_gemini=${GEMINI_API_KEY}
+                    """
+                }
             }
         }
     }

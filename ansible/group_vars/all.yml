@@ -1,0 +1,10 @@
+---
+# These are default values. Sensitive secrets should be encrypted with Ansible Vault 
+# or passed via extra-vars in the Jenkins pipeline.
+
+jwt_secret: "change_me_in_production"
+api_key_gemini: "change_me_in_production"
+
+# Docker Hub configuration
+docker_hub_user: "your-docker-hub-username"
+image_tag: "latest"
