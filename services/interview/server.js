@@ -38,12 +38,10 @@ app.get("/api/interview/results", protect, async (req, res) => {
     const user = req.email;
     if (!user) return res.status(400).json({ message: "User parameter is required" });
     const userInterviews = await Interview.find({ user }, 'topic interviewData');
-    if (userInterviews.length > 0) {
-      res.json(userInterviews);
-    } else {
-      res.status(404).json({ message: "No topics found for the specified user" });
-    }
+    // Return empty array instead of 404 for new users
+    res.json(userInterviews || []);
   } catch (error) {
+    console.error("Results fetch error:", error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -66,34 +64,36 @@ app.post("/api/interview/gemini", protect, async (req, res) => {
   try {
     const apiKey = process.env.API_KEY_GEMINI;
     if (!apiKey || apiKey === "no_key_provided") {
-        return res.status(500).json({ error: "Gemini API key not configured in environment." });
+        return res.status(500).json({ error: "Gemini API key not configured." });
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const prompt = `Given the input "${req.body.body}". Now check the syllabus for this interview and find questions and store them ,provided a sample JSON object with the following format:
-
-{
-  "OSI": [
-    "Question 1 about OSI?",
-    "Question 2 about OSI?",
-    "Question 3 about OSI?"
-  ],
-  "OI": [
-    "Question 1 about OI?",
-    "Question 2 about OSI?",
-    "Question 3 about OSI?"
-  ]
-};
-
-Ensure the response includes 3 questions from each topic one easy one medium and one hard and atleast 5 topics, 
-
-Return ONLY the JSON object, with no additional text.
- `;
+    // Using gemini-1.5-flash-latest for better compatibility
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    const prompt = `Generate interview questions for the topic: "${req.body.body}". 
+Return a JSON object EXACTLY in this format:
+{
+  "Topic Name": [
+    "Question 1?",
+    "Question 2?",
+    "Question 3?"
+  ]
+}
+Requirements:
+1. Include at least 5 sub-topics.
+2. Provide 3 questions per sub-topic (Easy, Medium, Hard).
+3. Return ONLY the JSON object. No markdown, no triple backticks, no extra text.`;
+
     const result = await model.generateContent(prompt);
-    res.send(JSON.parse(result.response.text()));
+    const responseText = result.response.text().trim();
+    
+    // Clean up potential markdown formatting if AI ignores "ONLY JSON" instruction
+    const jsonString = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
+    
+    res.json(JSON.parse(jsonString));
   } catch (err) {
     console.error("Gemini Error:", err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "Failed to generate questions. Please verify your API key and try again." });
   }
 });
