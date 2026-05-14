@@ -57,7 +57,6 @@ import { Results } from "./components/Results.jsx";
 import { Signup } from "./components/Signup.jsx";
 
 import { ResultsData } from "./components/resultsData.jsx";
-import "./App.css";
 
 function App() {
   return (
