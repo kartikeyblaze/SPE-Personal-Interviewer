@@ -29,7 +29,7 @@ services:
         condition: service_healthy
     networks:
       - backend-nw
-    restart: on_failure
+    restart: on-failure
 
   interview-service:
     build: ./services/interview
@@ -44,7 +44,7 @@ services:
         condition: service_healthy
     networks:
       - backend-nw
-    restart: on_failure
+    restart: on-failure
 
   frontend-service:
     build: ./services/frontend
@@ -54,7 +54,7 @@ services:
       - interview-service
     networks:
       - frontend-nw
-    restart: on_failure
+    restart: on-failure
 
   gateway:
     image: nginx:latest
