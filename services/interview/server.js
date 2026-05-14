@@ -3,11 +3,14 @@ const cors = require("cors");
 const helmet = require("helmet");
 const mongoose = require("mongoose");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+const Groq = require("groq-sdk");
 const Interview = require("./chat");
 const Topic = require("./questions");
 const protect = require("./authMiddleware");
 const connectDB = require("./db");
 require("dotenv").config();
+
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 const app = express();
 app.use(helmet());
@@ -62,16 +65,13 @@ app.post("/api/interview/chat", protect, async (req, res) => {
 
 app.post("/api/interview/gemini", protect, async (req, res) => {
   try {
-    const apiKey = process.env.API_KEY_GEMINI;
+    const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey || apiKey === "no_key_provided") {
-        return res.status(500).json({ error: "Gemini API key not configured." });
+        return res.status(500).json({ error: "Groq API key not configured." });
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    // Using gemini-2.0-flash for optimal 2026 performance and free-tier compatibility
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-
-    const prompt = `Generate interview questions for the topic: "${req.body.body}". 
+    const topic = req.body.body;
+    const prompt = `Generate interview questions for the topic: "${topic}". 
 Return a JSON object EXACTLY in this format:
 {
   "Topic Name": [
@@ -85,15 +85,16 @@ Requirements:
 2. Provide 3 questions per sub-topic (Easy, Medium, Hard).
 3. Return ONLY the JSON object. No markdown, no triple backticks, no extra text.`;
 
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.text().trim();
-    
-    // Clean up potential markdown formatting if AI ignores "ONLY JSON" instruction
-    const jsonString = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
-    
-    res.json(JSON.parse(jsonString));
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [{ role: "user", content: prompt }],
+      model: "llama-3.1-70b-versatile",
+      response_format: { type: "json_object" }
+    });
+
+    const responseText = chatCompletion.choices[0].message.content;
+    res.json(JSON.parse(responseText));
   } catch (err) {
-    console.error("Gemini Error:", err);
-    res.status(500).json({ error: "Failed to generate questions. Please verify your API key and try again." });
+    console.error("Groq Error:", err);
+    res.status(500).json({ error: "Failed to generate questions via Groq. Please verify your API key." });
   }
 });
