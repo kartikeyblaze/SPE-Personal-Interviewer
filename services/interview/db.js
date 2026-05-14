@@ -1,18 +1,25 @@
 const mongoose = require('mongoose');
-require('dotenv').config();
 
-// Function to connect to MongoDB
 const connectDB = async () => {
   try {
-    // Connect to the database using the URI from the .env file
+    console.log(`Attempting to connect to: ${process.env.MONGO_URI}`);
+    
     await mongoose.connect(process.env.MONGO_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 5000,
     });
+
+    mongoose.connection.on('connected', () => {
+      console.log('Mongoose default connection open');
+    });
+
+    mongoose.connection.on('error', (err) => {
+      console.error('Mongoose default connection error:', err);
+    });
+
     console.log('MongoDB connected successfully');
   } catch (error) {
-    console.error('Error connecting to MongoDB:', error);
-    process.exit(1); // Exit the process if the connection fails
+    console.error('Initial MongoDB connection error:', error);
+    process.exit(1);
   }
 };
 

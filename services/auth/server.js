@@ -28,21 +28,26 @@ app.post("/api/auth/register", async (req, res) => {
   const { email, username, password } = req.body;
   
   if (!email || !username || !password) {
-    return res.status(400).json({ message: "All fields (email, username, password) are required." });
-  }
-
-  if (password.length < 8) {
-    return res.status(400).json({ message: "Password must be at least 8 characters long." });
+    return res.status(400).json({ message: "All fields are required." });
   }
 
   try {
+    console.log(`[Register] Checking if user exists: ${email}`);
     const existingUser = await User.findOne({ email });
+    console.log(`[Register] User exists check complete.`);
+
     if (existingUser) return res.status(400).json({ message: "User already exists" });
 
+    console.log(`[Register] Hashing password...`);
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
+    console.log(`[Register] Hashing complete.`);
+
     const newUser = new User({ email, username, password: hashedPassword });
+    console.log(`[Register] Saving user to DB...`);
     await newUser.save();
+    console.log(`[Register] User saved successfully.`);
+
     res.status(201).json({ message: "User registered successfully!" });
   } catch (error) {
     console.error("Registration error:", error);
@@ -58,14 +63,22 @@ app.post("/api/auth/login", async (req, res) => {
   }
 
   try {
+    console.log(`[Login] Finding user: ${email}`);
     const user = await User.findOne({ email });
+    console.log(`[Login] User find complete.`);
+
     if (!user) return res.status(400).json({ message: "Invalid credentials" });
 
+    console.log(`[Login] Verifying password...`);
     const isMatch = await bcrypt.compare(password, user.password);
+    console.log(`[Login] Password verification complete: ${isMatch}`);
+
     if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
 
     const secret = process.env.JWT_SECRET || "default_scholar_secret_123";
     const token = jwt.sign({ email: user.email }, secret, { expiresIn: "1h" });
+    console.log(`[Login] JWT Token generated.`);
+
     res.json({ body: token });
   } catch (error) {
     console.error("Login error:", error);
@@ -75,7 +88,6 @@ app.post("/api/auth/login", async (req, res) => {
 
 const PORT = process.env.PORT || 5001;
 
-// Only start the server after DB is connected
 connectDB().then(() => {
   app.listen(PORT, () => console.log(`Auth Service running on port ${PORT}`));
 }).catch(err => {
