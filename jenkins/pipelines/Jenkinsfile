@@ -8,7 +8,7 @@ pipeline {
         IMAGE_FRONTEND = "${DOCKER_HUB_USER}/frontend-service"
         SECURITY_REPORT_DIR = 'reports/security'
         SECURITY_SEVERITY = 'HIGH,CRITICAL'
-        APP_BASE_URL = 'http://localhost'
+        APP_BASE_URL = 'http://interview.local'
     }
 
     stages {
@@ -150,14 +150,16 @@ pipeline {
             }
         }
 
-        stage('Deploy with Ansible') {
+        stage('Deploy to Kubernetes with Ansible') {
             steps {
                 withCredentials([
                     string(credentialsId: 'jwt-secret', variable: 'JWT_SECRET'),
-                    string(credentialsId: 'groq-api-key', variable: 'GROQ_API_KEY')
+                    string(credentialsId: 'groq-api-key', variable: 'GROQ_API_KEY'),
+                    file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG_FILE')
                 ]) {
                     sh '''
-                    ansible-playbook ansible/playbooks/deploy-compose.yml \
+                    export KUBECONFIG="$KUBECONFIG_FILE"
+                    ansible-playbook ansible/playbooks/deploy.yml \
                         -e image_tag=${BUILD_NUMBER} \
                         -e docker_hub_user=${DOCKER_HUB_USER} \
                         -e jwt_secret="$JWT_SECRET" \

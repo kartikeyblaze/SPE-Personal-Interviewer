@@ -4,8 +4,28 @@
   vars:
     image_tag: "latest"
     docker_hub_user: "your-docker-hub-username"
+    jwt_secret: "change_me_in_production"
+    groq_api_key: "change_me_in_production"
   
   tasks:
+    - name: Apply Application Secrets
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: app-secrets
+          type: Opaque
+          stringData:
+            jwt-secret: "{{ jwt_secret }}"
+            groq-api-key: "{{ groq_api_key }}"
+
+    - name: Apply MongoDB Manifest
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('file', '../../k8s/base/mongodb.yaml') | from_yaml_all | list }}"
+
     - name: Apply Auth Service Manifest
       kubernetes.core.k8s:
         state: present
@@ -20,3 +40,52 @@
       kubernetes.core.k8s:
         state: present
         definition: "{{ lookup('template', '../../k8s/base/frontend-deployment.yaml.j2') }}"
+
+    - name: Apply Ingress Manifest
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('file', '../../k8s/base/ingress.yaml') | from_yaml }}"
+
+    - name: Wait for MongoDB rollout
+      kubernetes.core.k8s_info:
+        api_version: apps/v1
+        kind: Deployment
+        name: mongodb
+        wait: true
+        wait_condition:
+          type: Available
+          status: "True"
+        wait_timeout: 180
+
+    - name: Wait for Auth Service rollout
+      kubernetes.core.k8s_info:
+        api_version: apps/v1
+        kind: Deployment
+        name: auth-service
+        wait: true
+        wait_condition:
+          type: Available
+          status: "True"
+        wait_timeout: 180
+
+    - name: Wait for Interview Service rollout
+      kubernetes.core.k8s_info:
+        api_version: apps/v1
+        kind: Deployment
+        name: interview-service
+        wait: true
+        wait_condition:
+          type: Available
+          status: "True"
+        wait_timeout: 180
+
+    - name: Wait for Frontend Service rollout
+      kubernetes.core.k8s_info:
+        api_version: apps/v1
+        kind: Deployment
+        name: frontend-service
+        wait: true
+        wait_condition:
+          type: Available
+          status: "True"
+        wait_timeout: 180

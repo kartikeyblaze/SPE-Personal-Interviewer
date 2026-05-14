@@ -56,6 +56,7 @@ Required credential IDs:
 docker-hub-creds
 jwt-secret
 groq-api-key
+kubeconfig
 ```
 
 ## Policy Notes

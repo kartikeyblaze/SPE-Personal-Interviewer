@@ -3,7 +3,5 @@ kind: Kustomization
 
 resources:
   - secrets.yaml
-  - auth-deployment.yaml.j2
-  - interview-deployment.yaml.j2
-  - frontend-deployment.yaml.j2
+  - mongodb.yaml
   - ingress.yaml

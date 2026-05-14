@@ -34,6 +34,14 @@ app.get("/api/interview/health", (req, res) => {
   res.json({ status: "ok", service: "interview-service", db: mongoose.connection.readyState === 1 ? "connected" : "disconnected" });
 });
 
+app.get("/api/interview/ready", (req, res) => {
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({ status: "not_ready", service: "interview-service", db: "disconnected" });
+  }
+
+  res.json({ status: "ready", service: "interview-service", db: "connected" });
+});
+
 connectDB().then(() => {
   const PORT = process.env.PORT || 5002;
   app.listen(PORT, () => console.log(`Interview Service running on port ${PORT}`));

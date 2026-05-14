@@ -5,7 +5,13 @@ metadata:
   labels:
     app: interview-service
 spec:
-  replicas: 1
+  replicas: 2
+  revisionHistoryLimit: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
   selector:
     matchLabels:
       app: interview-service
@@ -17,6 +23,7 @@ spec:
       containers:
       - name: interview-service
         image: "{{ docker_hub_user }}/interview-service:{{ image_tag }}"
+        imagePullPolicy: Always
         ports:
         - containerPort: 5002
         livenessProbe:
@@ -25,12 +32,16 @@ spec:
             port: 5002
           initialDelaySeconds: 20
           periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
         readinessProbe:
           httpGet:
-            path: /api/interview/health
+            path: /api/interview/ready
             port: 5002
           initialDelaySeconds: 10
           periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 3
         resources:
           limits:
             cpu: "1000m"

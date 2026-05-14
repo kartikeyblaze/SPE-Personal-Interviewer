@@ -24,6 +24,14 @@ app.get("/api/auth/health", (req, res) => {
   res.json({ status: "ok", service: "auth-service", db: mongoose.connection.readyState === 1 ? "connected" : "disconnected" });
 });
 
+app.get("/api/auth/ready", (req, res) => {
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({ status: "not_ready", service: "auth-service", db: "disconnected" });
+  }
+
+  res.json({ status: "ready", service: "auth-service", db: "connected" });
+});
+
 app.post("/api/auth/register", async (req, res) => {
   const { email, username, password } = req.body;
   
