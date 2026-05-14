@@ -68,8 +68,8 @@ app.post("/api/interview/gemini", protect, async (req, res) => {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    // Using gemini-1.5-flash-latest for better compatibility
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // Using gemini-2.0-flash for optimal 2026 performance and free-tier compatibility
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
     const prompt = `Generate interview questions for the topic: "${req.body.body}". 
 Return a JSON object EXACTLY in this format:
