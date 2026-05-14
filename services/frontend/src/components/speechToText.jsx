@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, Square, Play, User, Book, Sparkles } from "lucide-react";
+import { Mic, Square, Play, Book, Sparkles } from "lucide-react";
 import { Video } from "./video.jsx";
 import { useInterview } from "../hooks/useInterview";
 
@@ -13,6 +13,7 @@ export const SpeechToText = () => {
     isInterviewActive,
     inputSubmitted,
     isProcessing,
+    errorMessage,
     startInterview,
     endInterview,
     interviewTopic
@@ -59,6 +60,11 @@ export const SpeechToText = () => {
                 {isProcessing ? <Sparkles className="animate-pulse" size={16} /> : <Play size={16} />}
                 Commence Interview
               </button>
+              {errorMessage && (
+                <p className="text-sm text-scholar-terracotta leading-relaxed" role="alert">
+                  {errorMessage}
+                </p>
+              )}
             </form>
           </motion.div>
         ) : (
@@ -71,15 +77,26 @@ export const SpeechToText = () => {
             {/* Left: Mentor Persona & Video */}
             <div className="lg:col-span-4 space-y-8">
               <div className="bg-scholar-cream p-8 border border-scholar-brown/10 shadow-md">
-                <div className="aspect-square w-full mb-6 relative overflow-hidden bg-scholar-brown/5 flex items-center justify-center">
-                  <motion.div 
-                    animate={{ opacity: isProcessing ? [0.4, 0.7, 0.4] : 1 }}
-                    transition={{ repeat: Infinity, duration: 2 }}
-                    className="text-scholar-brown-light/20"
+                <div className="aspect-square w-full mb-6 relative overflow-hidden bg-[#d8c8aa] flex items-center justify-center">
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(255,255,255,0.45),transparent_42%)]" />
+                  <motion.div
+                    animate={isProcessing ? { y: [0, -3, 0] } : { y: 0 }}
+                    transition={{ repeat: isProcessing ? Infinity : 0, duration: 1.4 }}
+                    className="relative w-44 h-56"
                   >
-                    <User size={120} strokeWidth={0.5} />
+                    <div className="absolute left-1/2 top-6 h-36 w-32 -translate-x-1/2 rounded-[48%_48%_44%_44%] bg-[#b88761] shadow-inner" />
+                    <div className="absolute left-1/2 top-16 h-32 w-28 -translate-x-1/2 rounded-[48%] bg-[#e0b083]" />
+                    <div className="absolute left-[45px] top-[86px] h-3 w-3 rounded-full bg-scholar-brown" />
+                    <div className="absolute right-[45px] top-[86px] h-3 w-3 rounded-full bg-scholar-brown" />
+                    <div className="absolute left-1/2 top-[108px] h-5 w-2 -translate-x-1/2 rounded-full bg-[#bd805c]" />
+                    <motion.div
+                      animate={isProcessing ? { height: [4, 12, 4] } : { height: 5 }}
+                      transition={{ repeat: isProcessing ? Infinity : 0, duration: 0.45 }}
+                      className="absolute left-1/2 top-[134px] w-10 -translate-x-1/2 rounded-full bg-scholar-brown"
+                    />
+                    <div className="absolute left-1/2 top-[162px] h-20 w-36 -translate-x-1/2 rounded-t-[48px] bg-scholar-brown" />
+                    <div className="absolute left-1/2 top-[174px] h-16 w-24 -translate-x-1/2 rounded-t-[38px] bg-scholar-green/70" />
                   </motion.div>
-                  {/* Subtle 'Sketchy' Overlay Placeholder */}
                   <div className="absolute inset-0 border-4 border-scholar-cream" />
                 </div>
                 <div className="text-center space-y-2">
@@ -89,7 +106,7 @@ export const SpeechToText = () => {
               </div>
 
               <div className="border-4 border-scholar-brown-light p-1 shadow-2xl bg-black aspect-video overflow-hidden">
-                <Video ref={videoRef} />
+                <Video ref={videoRef} isActive={isInterviewActive} />
               </div>
 
               <div className="flex flex-col gap-3">
@@ -123,6 +140,11 @@ export const SpeechToText = () => {
                    <span className="text-[9px] uppercase tracking-[0.2em]">Live Audio Feed</span>
                 </div>
               </div>
+              {errorMessage && (
+                <div className="px-8 py-3 border-b border-scholar-terracotta/20 bg-scholar-terracotta/10 text-sm text-scholar-terracotta" role="alert">
+                  {errorMessage}
+                </div>
+              )}
 
               <div className="flex-1 overflow-y-auto p-12 space-y-12 scrollbar-thin scrollbar-thumb-scholar-brown/10">
                 <AnimatePresence initial={false}>

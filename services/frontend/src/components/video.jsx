@@ -3,15 +3,16 @@ import { useReactMediaRecorder } from "react-media-recorder";
 import "./video.css";
 
 export const Video = forwardRef((props, ref) => {
-  const [recordings, setRecordings] = useState([]);
+  const { isActive = false } = props;
+  const [cameraError, setCameraError] = useState("");
   const {
     status,
     startRecording,
     stopRecording,
-    mediaBlobUrl,
     previewStream,
     clearBlobUrl,
-  } = useReactMediaRecorder({ video: true, audio: true });
+    error,
+  } = useReactMediaRecorder({ video: true, audio: false });
   const previewVideoRef = useRef(null);
 
   useEffect(() => {
@@ -21,30 +22,23 @@ export const Video = forwardRef((props, ref) => {
   }, [previewStream]);
 
   useEffect(() => {
-    if (mediaBlobUrl) {
-      fetch(mediaBlobUrl)
-        .then((response) => response.blob())
-        .then((blob) => {
-          downloadVideo(blob);
-          const updatedRecordings = [...recordings, mediaBlobUrl];
-          setRecordings(updatedRecordings);
-        })
-        .catch((error) => console.error("Error fetching video blob:", error));
-    }
-  }, [mediaBlobUrl]);
+    const canStart = status === "idle" || status === "stopped";
 
-  const downloadVideo = (blob) => {
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `recording_${new Date().toISOString()}.webm`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+    if (isActive && canStart) {
+      startRecording();
+    }
+
+    if (!isActive && status === "recording") {
+      stopRecording();
+    }
+  }, [isActive, status, startRecording, stopRecording]);
+
+  useEffect(() => {
+    setCameraError(error ? "Camera access is unavailable. Please allow camera permissions." : "");
+  }, [error]);
 
   const handleClearRecording = () => {
     clearBlobUrl();
-    setRecordings([]);
   };
 
   useImperativeHandle(ref, () => ({
@@ -58,9 +52,20 @@ export const Video = forwardRef((props, ref) => {
       <video
         ref={previewVideoRef}
         autoPlay
+        playsInline
         muted
         className="w-full h-full object-cover grayscale-[30%] sepia-[20%] brightness-[90%]"
       />
+      {cameraError && (
+        <div className="absolute inset-0 flex items-center justify-center bg-scholar-brown/90 px-6 text-center text-xs uppercase tracking-widest text-scholar-cream">
+          {cameraError}
+        </div>
+      )}
+      {!cameraError && !previewStream && (
+        <div className="absolute inset-0 flex items-center justify-center px-6 text-center text-xs uppercase tracking-widest text-scholar-cream/70">
+          Camera feed will appear when the interview starts
+        </div>
+      )}
       {/* Decorative Corner Overlays */}
       <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-scholar-cream/30 m-2" />
       <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-scholar-cream/30 m-2" />

@@ -3,7 +3,9 @@
 # or passed via extra-vars in the Jenkins pipeline.
 
 jwt_secret: "change_me_in_production"
-api_key_gemini: "change_me_in_production"
+groq_api_key: "change_me_in_production"
+groq_model: "llama-3.3-70b-versatile"
+groq_timeout_ms: "30000"
 
 # Docker Hub configuration
 docker_hub_user: "your-docker-hub-username"

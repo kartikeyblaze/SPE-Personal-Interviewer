@@ -10,7 +10,13 @@ const protect = require("./authMiddleware");
 const connectDB = require("./db");
 require("dotenv").config();
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const GROQ_MODEL = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+const configuredGroqTimeout = Number(process.env.GROQ_TIMEOUT_MS);
+const GROQ_TIMEOUT_MS = Number.isFinite(configuredGroqTimeout) ? configuredGroqTimeout : 30000;
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY,
+  timeout: GROQ_TIMEOUT_MS,
+});
 
 const app = express();
 app.use(helmet());
@@ -67,27 +73,37 @@ app.post("/api/interview/gemini", protect, async (req, res) => {
   try {
     const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey || apiKey === "no_key_provided") {
-        return res.status(500).json({ error: "Groq API key not configured." });
+      return res.status(500).json({ error: "Groq API key not configured." });
     }
 
-    const topic = req.body.body;
-    const prompt = `Generate interview questions for the topic: "${topic}". 
-Return a JSON object EXACTLY in this format:
+    const topic = typeof req.body.body === "string" ? req.body.body.trim() : "";
+    if (!topic) {
+      return res.status(400).json({ error: "Interview topic is required." });
+    }
+
+    const prompt = `Generate interview questions for the topic: "${topic}".
+Return a JSON object EXACTLY in this format, with at least 5 different sub-topic keys:
 {
-  "Topic Name": [
+  "Sub-topic 1": [
+    "Question 1?",
+    "Question 2?",
+    "Question 3?"
+  ],
+  "Sub-topic 2": [
     "Question 1?",
     "Question 2?",
     "Question 3?"
   ]
 }
 Requirements:
-1. Include at least 5 sub-topics.
-2. Provide 3 questions per sub-topic (Easy, Medium, Hard).
-3. Return ONLY the JSON object. No markdown, no triple backticks, no extra text.`;
+1. Include at least 5 sub-topics as top-level object keys.
+2. Provide exactly 3 questions per sub-topic: Easy, Medium, Hard.
+3. Return at least 15 total questions.
+4. Return ONLY the JSON object. No markdown, no triple backticks, no extra text.`;
 
     const chatCompletion = await groq.chat.completions.create({
       messages: [{ role: "user", content: prompt }],
-      model: "llama-3.1-70b-versatile",
+      model: GROQ_MODEL,
       response_format: { type: "json_object" }
     });
 
@@ -95,6 +111,12 @@ Requirements:
     res.json(JSON.parse(responseText));
   } catch (err) {
     console.error("Groq Error:", err);
-    res.status(500).json({ error: "Failed to generate questions via Groq. Please verify your API key." });
+    const isTimeout = err.name === "APIConnectionTimeoutError" || err.code === "ETIMEDOUT";
+    const status = isTimeout ? 504 : err.status || 500;
+    const message = isTimeout
+      ? "Groq request timed out. Please try again."
+      : err.error?.message || err.message || "Failed to generate questions via Groq.";
+
+    res.status(status).json({ error: message });
   }
 });
