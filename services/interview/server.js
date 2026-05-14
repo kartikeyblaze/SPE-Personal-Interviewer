@@ -14,7 +14,24 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
-connectDB();
+// Diagnostic Logger
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`, req.body);
+  next();
+});
+
+// Health Check
+app.get("/api/interview/health", (req, res) => {
+  res.json({ status: "ok", service: "interview-service", db: mongoose.connection.readyState === 1 ? "connected" : "disconnected" });
+});
+
+connectDB().then(() => {
+  const PORT = process.env.PORT || 5002;
+  app.listen(PORT, () => console.log(`Interview Service running on port ${PORT}`));
+}).catch(err => {
+  console.error("Failed to start Interview Service:", err);
+  process.exit(1);
+});
 
 app.get("/api/interview/results", protect, async (req, res) => {
   try {
@@ -48,7 +65,9 @@ app.post("/api/interview/chat", protect, async (req, res) => {
 app.post("/api/interview/gemini", protect, async (req, res) => {
   try {
     const apiKey = process.env.API_KEY_GEMINI;
-    if (!apiKey) return res.status(500).json({ error: "API key not found" });
+    if (!apiKey || apiKey === "no_key_provided") {
+        return res.status(500).json({ error: "Gemini API key not configured in environment." });
+    }
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const prompt = `Given the input "${req.body.body}". Now check the syllabus for this interview and find questions and store them ,provided a sample JSON object with the following format:
@@ -74,9 +93,7 @@ Return ONLY the JSON object, with no additional text.
     const result = await model.generateContent(prompt);
     res.send(JSON.parse(result.response.text()));
   } catch (err) {
+    console.error("Gemini Error:", err);
     res.status(500).json({ error: err.message });
   }
 });
-
-const PORT = process.env.PORT || 5002;
-app.listen(PORT, () => console.log(`Interview Service running on port ${PORT}`));

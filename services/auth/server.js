@@ -13,16 +13,27 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
+// Diagnostic Logger
 app.use((req, res, next) => {
-  console.log(`${req.method} ${req.url}`, req.body);
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`, req.body);
   next();
 });
 
-connectDB();
+// Health Check
+app.get("/api/auth/health", (req, res) => {
+  res.json({ status: "ok", service: "auth-service", db: mongoose.connection.readyState === 1 ? "connected" : "disconnected" });
+});
 
 app.post("/api/auth/register", async (req, res) => {
   const { email, username, password } = req.body;
-  if (password.length < 8) return res.status(400).json({ message: "Password length is less than 8" });
+  
+  if (!email || !username || !password) {
+    return res.status(400).json({ message: "All fields (email, username, password) are required." });
+  }
+
+  if (password.length < 8) {
+    return res.status(400).json({ message: "Password must be at least 8 characters long." });
+  }
 
   try {
     const existingUser = await User.findOne({ email });
@@ -35,12 +46,17 @@ app.post("/api/auth/register", async (req, res) => {
     res.status(201).json({ message: "User registered successfully!" });
   } catch (error) {
     console.error("Registration error:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error during registration", error: error.message });
   }
 });
 
 app.post("/api/auth/login", async (req, res) => {
   const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ message: "Email and password are required." });
+  }
+
   try {
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ message: "Invalid credentials" });
@@ -53,9 +69,16 @@ app.post("/api/auth/login", async (req, res) => {
     res.json({ body: token });
   } catch (error) {
     console.error("Login error:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error during login", error: error.message });
   }
 });
 
 const PORT = process.env.PORT || 5001;
-app.listen(PORT, () => console.log(`Auth Service running on port ${PORT}`));
+
+// Only start the server after DB is connected
+connectDB().then(() => {
+  app.listen(PORT, () => console.log(`Auth Service running on port ${PORT}`));
+}).catch(err => {
+  console.error("Failed to start Auth Service:", err);
+  process.exit(1);
+});
