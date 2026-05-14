@@ -68,3 +68,13 @@ export const chat = async(prompt)=>{
     return [];
   }
 }
+
+export const evaluateInterview = async(prompt)=>{
+  try {
+    const response = await api.post(`${INTERVIEW_API_URL}/evaluate`, prompt, { headers: authHeaders() });
+    return response.data;
+  } catch (error) {
+    console.error("Error in evaluating interview", error);
+    throw new Error(apiErrorMessage(error, "Failed to evaluate interview."));
+  }
+}

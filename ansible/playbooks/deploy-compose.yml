@@ -24,5 +24,8 @@
     - name: Pull latest images and start services
       community.docker.docker_compose_v2:
         project_src: "{{ project_root }}"
+        files:
+          - docker-compose.prod.yml
         pull: always
+        remove_orphans: true
         state: present

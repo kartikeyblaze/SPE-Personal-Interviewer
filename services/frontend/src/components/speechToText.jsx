@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, Square, Play, Book, Sparkles } from "lucide-react";
+import { Mic, Square, Play, Book, Sparkles, CheckCircle2 } from "lucide-react";
 import { Video } from "./video.jsx";
 import { useInterview } from "../hooks/useInterview";
 
@@ -11,9 +11,16 @@ export const SpeechToText = () => {
     messages,
     isListening,
     isInterviewActive,
+    isAnswering,
     inputSubmitted,
     isProcessing,
+    isEvaluating,
+    questionCount,
+    answerCount,
+    canEndInterview,
     errorMessage,
+    startAnswer,
+    finishAnswer,
     startInterview,
     endInterview,
     interviewTopic
@@ -111,11 +118,29 @@ export const SpeechToText = () => {
 
               <div className="flex flex-col gap-3">
                 <button
-                  onClick={endInterview}
-                  className="w-full py-4 border border-scholar-terracotta text-scholar-terracotta uppercase tracking-widest text-[10px] hover:bg-scholar-terracotta hover:text-scholar-cream transition-all duration-300 flex items-center justify-center gap-2"
+                  onClick={startAnswer}
+                  disabled={isAnswering || isProcessing || isEvaluating}
+                  className="w-full py-4 bg-scholar-green text-scholar-cream uppercase tracking-widest text-[10px] hover:bg-scholar-brown transition-all duration-300 disabled:opacity-30 flex items-center justify-center gap-2"
                 >
-                  <Square size={12} /> Terminate Session
+                  <Mic size={12} /> Answer
                 </button>
+                <button
+                  onClick={finishAnswer}
+                  disabled={!isAnswering || isProcessing || isEvaluating}
+                  className="w-full py-4 border border-scholar-green text-scholar-green uppercase tracking-widest text-[10px] hover:bg-scholar-green hover:text-scholar-cream transition-all duration-300 disabled:opacity-30 flex items-center justify-center gap-2"
+                >
+                  <CheckCircle2 size={12} /> Finish Answer
+                </button>
+                <button
+                  onClick={endInterview}
+                  disabled={!canEndInterview || isAnswering || isProcessing || isEvaluating}
+                  className="w-full py-4 border border-scholar-terracotta text-scholar-terracotta uppercase tracking-widest text-[10px] hover:bg-scholar-terracotta hover:text-scholar-cream transition-all duration-300 disabled:opacity-30 flex items-center justify-center gap-2"
+                >
+                  <Square size={12} /> {isEvaluating ? "Evaluating Session" : "Terminate Session"}
+                </button>
+                <p className="text-center text-[9px] uppercase tracking-widest text-scholar-brown-light/60">
+                  {answerCount}/6 answers completed
+                </p>
               </div>
             </div>
 
@@ -137,7 +162,12 @@ export const SpeechToText = () => {
                     transition={{ repeat: Infinity, duration: 1.5 }}
                     className={`w-3 h-3 rounded-full ${isListening ? 'bg-scholar-green' : 'bg-scholar-brown/20'}`}
                    />
-                   <span className="text-[9px] uppercase tracking-[0.2em]">Live Audio Feed</span>
+                   <span className="text-[9px] uppercase tracking-[0.2em]">
+                    {isAnswering ? "Recording Answer" : "Awaiting Scholar"}
+                   </span>
+                   <span className="text-[9px] uppercase tracking-[0.2em] text-scholar-brown-light/50">
+                    Q{questionCount}
+                   </span>
                 </div>
               </div>
               {errorMessage && (
@@ -168,14 +198,14 @@ export const SpeechToText = () => {
                     </motion.div>
                   ))}
                 </AnimatePresence>
-                {isProcessing && (
+                {(isProcessing || isEvaluating) && (
                   <motion.div 
                     initial={{ opacity: 0 }} 
                     animate={{ opacity: 1 }} 
                     className="flex items-center gap-2 text-scholar-brown/30 font-serif italic"
                   >
                     <Sparkles size={14} className="animate-spin" />
-                    <span>The mentor is recording your thoughts...</span>
+                    <span>{isEvaluating ? "The mentor is evaluating the session..." : "The mentor is preparing the next inquiry..."}</span>
                   </motion.div>
                 )}
               </div>

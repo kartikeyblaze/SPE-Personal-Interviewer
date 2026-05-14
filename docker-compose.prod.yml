@@ -16,7 +16,7 @@ services:
       start_period: 10s
 
   auth-service:
-    build: ./services/auth
+    image: ${DOCKER_HUB_USER}/auth-service:${IMAGE_TAG}
     environment:
       - MONGO_URI=mongodb://mongodb:27017/auth_db
       - JWT_SECRET=${JWT_SECRET:-default_scholar_secret_123}
@@ -31,7 +31,7 @@ services:
       replicas: 2
 
   interview-service:
-    build: ./services/interview
+    image: ${DOCKER_HUB_USER}/interview-service:${IMAGE_TAG}
     environment:
       - MONGO_URI=mongodb://mongodb:27017/interview_db
       - JWT_SECRET=${JWT_SECRET:-default_scholar_secret_123}
@@ -49,7 +49,7 @@ services:
       replicas: 2
 
   frontend-service:
-    build: ./services/frontend
+    image: ${DOCKER_HUB_USER}/frontend-service:${IMAGE_TAG}
     depends_on:
       - auth-service
       - interview-service

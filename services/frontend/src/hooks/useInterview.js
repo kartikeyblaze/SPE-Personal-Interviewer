@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { gemini, chat } from '../api/userApi';
+import { evaluateInterview, gemini, chat } from '../api/userApi';
+
+const MIN_ANSWERS_BEFORE_END = 6;
 
 export const useInterview = () => {
   const recognitionRef = useRef(null);
@@ -9,13 +11,18 @@ export const useInterview = () => {
   const questionsRef = useRef({});
   const questionPoolRef = useRef([]);
   const askingQuestionRef = useRef(false);
-  const responseCapturedRef = useRef(false);
+  const isAnsweringRef = useRef(false);
+  const answerDraftRef = useRef("");
   const [isListening, setIsListening] = useState(false);
   const [isInterviewActive, setIsInterviewActive] = useState(false);
+  const [isAnswering, setIsAnswering] = useState(false);
   const [messages, setMessages] = useState([]);
   const [interviewTopic, setInterviewTopic] = useState("");
   const [inputSubmitted, setInputSubmitted] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isEvaluating, setIsEvaluating] = useState(false);
+  const [questionCount, setQuestionCount] = useState(0);
+  const [answerCount, setAnswerCount] = useState(0);
   const [errorMessage, setErrorMessage] = useState("");
   
   const resultsRef = useRef(new Set());
@@ -88,9 +95,10 @@ export const useInterview = () => {
 
     const nextQuestion = getNextQuestion();
     resultsUsedRef.current.add(nextQuestion);
-    responseCapturedRef.current = false;
+    answerDraftRef.current = "";
 
     setMessages(prev => [...prev, { text: nextQuestion, type: "question" }]);
+    setQuestionCount(prev => prev + 1);
 
     try {
       await readOut(nextQuestion);
@@ -98,10 +106,6 @@ export const useInterview = () => {
         topic: interviewTopicRef.current,
         interviewData: { text: nextQuestion, type: "question" },
       });
-
-      if (isInterviewActiveRef.current && recognitionRef.current) {
-        recognitionRef.current.start();
-      }
     } catch (error) {
       console.error("Question delivery failed", error);
       setErrorMessage("The interviewer could not continue. Please try again.");
@@ -116,7 +120,7 @@ export const useInterview = () => {
     if (!SpeechRecognition) return;
 
     const recognition = new SpeechRecognition();
-    recognition.continuous = false;
+    recognition.continuous = true;
     recognition.interimResults = false;
 
     recognition.onstart = async () => {
@@ -134,14 +138,14 @@ export const useInterview = () => {
       const transcript = event.results[event.resultIndex][0].transcript.trim();
       if (!transcript) return;
 
-      responseCapturedRef.current = true;
+      answerDraftRef.current = [answerDraftRef.current, transcript].filter(Boolean).join(" ");
       
       setMessages(prev => {
         const last = prev[prev.length - 1];
         if (last && last.type === "response") {
-          return [...prev.slice(0, -1), { text: last.text + " " + transcript, type: "response" }];
+          return [...prev.slice(0, -1), { text: answerDraftRef.current, type: "response" }];
         }
-        return [...prev, { text: transcript, type: "response" }];
+        return [...prev, { text: answerDraftRef.current, type: "response" }];
       });
 
       transcript.split(" ").forEach(word => {
@@ -156,16 +160,16 @@ export const useInterview = () => {
         });
       });
 
-      await chat({
-        topic: interviewTopicRef.current,
-        interviewData: { text: transcript, type: "response" },
-      });
     };
 
     recognition.onend = () => {
       setIsListening(false);
-      if (isInterviewActiveRef.current && responseCapturedRef.current) {
-        window.setTimeout(askNextQuestion, 800);
+      if (isInterviewActiveRef.current && isAnsweringRef.current) {
+        window.setTimeout(() => {
+          if (isInterviewActiveRef.current && isAnsweringRef.current && recognitionRef.current) {
+            recognitionRef.current.start();
+          }
+        }, 250);
       }
     };
 
@@ -200,6 +204,7 @@ export const useInterview = () => {
 
       resultsRef.current.clear();
       resultsUsedRef.current.clear();
+      answerDraftRef.current = "";
       questionsRef.current = qData;
       questionPoolRef.current = normalizeQuestions(qData);
       if (questionPoolRef.current.length === 0) {
@@ -208,7 +213,11 @@ export const useInterview = () => {
 
       setInputSubmitted(true);
       setIsInterviewActive(true);
+      setIsAnswering(false);
+      setQuestionCount(0);
+      setAnswerCount(0);
       isInterviewActiveRef.current = true;
+      isAnsweringRef.current = false;
       await delay(300);
       await askNextQuestion();
     } catch (error) {
@@ -219,13 +228,76 @@ export const useInterview = () => {
     }
   };
 
+  const startAnswer = () => {
+    if (!isInterviewActiveRef.current || isProcessing || isAnsweringRef.current) return;
+
+    setErrorMessage("");
+    answerDraftRef.current = "";
+    isAnsweringRef.current = true;
+    setIsAnswering(true);
+
+    try {
+      recognitionRef.current?.start();
+    } catch (error) {
+      console.error("Speech recognition start failed", error);
+    }
+  };
+
+  const finishAnswer = async () => {
+    if (!isInterviewActiveRef.current || !isAnsweringRef.current) return;
+
+    isAnsweringRef.current = false;
+    setIsAnswering(false);
+    recognitionRef.current?.stop();
+
+    const finalAnswer = answerDraftRef.current.trim();
+    if (!finalAnswer) {
+      setErrorMessage("No answer was captured. Press Answer and speak before finishing.");
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      await chat({
+        topic: interviewTopicRef.current,
+        interviewData: { text: finalAnswer, type: "response" },
+      });
+      setAnswerCount(prev => prev + 1);
+
+      await delay(500);
+      await askNextQuestion();
+    } catch (error) {
+      console.error("Answer save failed", error);
+      setErrorMessage("Your answer was captured but could not be saved.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const endInterview = async () => {
+    if (answerCount < MIN_ANSWERS_BEFORE_END) {
+      setErrorMessage(`Please complete at least ${MIN_ANSWERS_BEFORE_END} answers before ending the interview.`);
+      return;
+    }
+
     setIsInterviewActive(false);
     isInterviewActiveRef.current = false;
+    isAnsweringRef.current = false;
+    setIsAnswering(false);
     window.speechSynthesis.cancel();
     if (recognitionRef.current) {
       recognitionRef.current.stop();
     }
+
+    setIsEvaluating(true);
+    try {
+      await evaluateInterview({ topic: interviewTopicRef.current });
+    } catch (error) {
+      console.error("Evaluation failed", error);
+    } finally {
+      setIsEvaluating(false);
+    }
+
     await delay(500);
     navigate("/results");
   };
@@ -234,9 +306,16 @@ export const useInterview = () => {
     messages,
     isListening,
     isInterviewActive,
+    isAnswering,
     inputSubmitted,
     isProcessing,
+    isEvaluating,
+    questionCount,
+    answerCount,
+    canEndInterview: answerCount >= MIN_ANSWERS_BEFORE_END,
     errorMessage,
+    startAnswer,
+    finishAnswer,
     startInterview,
     endInterview,
     interviewTopic

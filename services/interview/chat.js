@@ -15,6 +15,16 @@ const interviewSchema = new mongoose.Schema({
   interviewData: {
     type:[],
   },
+  evaluation: {
+    mentorComments: {
+      type: [],
+      default: []
+    },
+    overallReview: {
+      type: String,
+      default: ""
+    }
+  },
   date: {
     type: Date,
     default: Date.now

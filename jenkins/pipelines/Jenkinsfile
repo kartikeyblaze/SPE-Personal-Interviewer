@@ -159,6 +159,7 @@ pipeline {
                     sh '''
                     ansible-playbook ansible/playbooks/deploy-compose.yml \
                         -e image_tag=${BUILD_NUMBER} \
+                        -e docker_hub_user=${DOCKER_HUB_USER} \
                         -e jwt_secret="$JWT_SECRET" \
                         -e groq_api_key="$GROQ_API_KEY"
                     '''

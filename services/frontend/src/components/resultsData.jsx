@@ -8,6 +8,28 @@ export const ResultsData = () => {
   const location = useLocation();
   const topicData = location.state?.topic;
   const messages = topicData?.interviewData || [];
+  const evaluation = topicData?.evaluation || {};
+  const mentorComments = Array.isArray(evaluation.mentorComments) ? evaluation.mentorComments : [];
+
+  const transcriptRows = [];
+  let currentQuestion = null;
+
+  messages.forEach((msg) => {
+    if (!msg || !msg.text) return;
+
+    if (msg.type === "question") {
+      currentQuestion = msg.text;
+      return;
+    }
+
+    if (msg.type === "response" && currentQuestion) {
+      transcriptRows.push({
+        question: currentQuestion,
+        answer: msg.text,
+      });
+      currentQuestion = null;
+    }
+  });
 
   return (
     <div className="min-h-[calc(100vh-120px)] py-12 px-6 max-w-4xl mx-auto">
@@ -55,38 +77,72 @@ export const ResultsData = () => {
             </div>
           </header>
 
-          <div className="space-y-16">
-            {messages.map((msg, index) => (
+          <div className="space-y-12">
+            {transcriptRows.map((row, index) => {
+              const feedback = mentorComments[index] || {};
+
+              return (
               <motion.div 
                 key={index}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.05 }}
-                className="grid grid-cols-1 md:grid-cols-12 gap-6"
+                className="border-b border-scholar-brown/10 pb-10 last:border-b-0"
               >
-                <div className="md:col-span-3">
-                  <span className={`text-[9px] uppercase tracking-[0.3em] font-bold ${
-                    msg.type === 'question' ? 'text-scholar-brown' : 'text-scholar-green'
-                  }`}>
-                    {msg.type === 'question' ? 'The Mentor' : 'The Scholar'}
-                  </span>
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-6">
+                  <div className="md:col-span-3">
+                    <span className="text-[9px] uppercase tracking-[0.3em] font-bold text-scholar-brown">
+                      Question {index + 1}
+                    </span>
+                  </div>
+                  <div className="md:col-span-9">
+                    <p className="font-serif text-lg text-scholar-brown leading-relaxed italic">
+                      {typeof row.question === "string" ? row.question : JSON.stringify(row.question)}
+                    </p>
+                  </div>
                 </div>
-                <div className="md:col-span-9">
-                  <p className={`${
-                    msg.type === 'question' 
-                    ? 'font-serif text-lg text-scholar-brown leading-relaxed italic' 
-                    : 'font-handwritten text-2xl text-scholar-brown-light leading-snug'
-                  }`}>
-                    {typeof msg.text === "string" 
-                      ? msg.text 
-                      : msg.text && typeof msg.text === "object" 
-                      ? JSON.stringify(msg.text) 
-                      : "Transcription unavailable"}
-                  </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-6">
+                  <div className="md:col-span-3">
+                    <span className="text-[9px] uppercase tracking-[0.3em] font-bold text-scholar-green">
+                      Your Answer
+                    </span>
+                  </div>
+                  <div className="md:col-span-9">
+                    <p className="font-handwritten text-2xl text-scholar-brown-light leading-snug">
+                      {typeof row.answer === "string" ? row.answer : JSON.stringify(row.answer)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                  <div className="md:col-span-3">
+                    <span className="text-[9px] uppercase tracking-[0.3em] font-bold text-scholar-terracotta">
+                      Mentor's Comments
+                    </span>
+                  </div>
+                  <div className="md:col-span-9">
+                    <p className="text-sm text-scholar-brown-light leading-relaxed">
+                      {feedback.comment || "No mentor comment available for this answer."}
+                    </p>
+                    {feedback.score && (
+                      <p className="mt-3 text-[9px] uppercase tracking-widest text-scholar-brown-light/60">
+                        Score: {feedback.score}/5
+                      </p>
+                    )}
+                  </div>
                 </div>
               </motion.div>
-            ))}
+              );
+            })}
           </div>
+
+          <section className="mt-20 border-t border-scholar-brown/10 pt-12">
+            <h3 className="text-[10px] uppercase tracking-[0.4em] text-scholar-brown-light opacity-60 mb-6">Overall Review</h3>
+            <p className="font-serif text-xl italic leading-relaxed text-scholar-brown">
+              {evaluation.overallReview || "No overall review has been generated for this session yet."}
+            </p>
+          </section>
 
           <footer className="mt-24 pt-12 border-t border-scholar-brown/10 flex flex-col items-center">
              <div className="font-serif italic text-scholar-brown/30 text-sm mb-4 italic">

@@ -46,12 +46,110 @@ app.get("/api/interview/results", protect, async (req, res) => {
   try {
     const user = req.email;
     if (!user) return res.status(400).json({ message: "User parameter is required" });
-    const userInterviews = await Interview.find({ user }, 'topic interviewData');
+    const userInterviews = await Interview.find({ user }, 'topic interviewData evaluation');
     // Return empty array instead of 404 for new users
     res.json(userInterviews || []);
   } catch (error) {
     console.error("Results fetch error:", error);
     res.status(500).json({ message: error.message });
+  }
+});
+
+const buildInterviewPairs = (interviewData = []) => {
+  const pairs = [];
+  let currentQuestion = null;
+
+  interviewData.forEach((item) => {
+    if (!item || !item.text) return;
+
+    if (item.type === "question") {
+      currentQuestion = item.text;
+      return;
+    }
+
+    if (item.type === "response" && currentQuestion) {
+      pairs.push({
+        question: currentQuestion,
+        answer: item.text,
+      });
+      currentQuestion = null;
+    }
+  });
+
+  return pairs;
+};
+
+app.post("/api/interview/evaluate", protect, async (req, res) => {
+  try {
+    const apiKey = process.env.GROQ_API_KEY;
+    if (!apiKey || apiKey === "no_key_provided") {
+      return res.status(500).json({ error: "Groq API key not configured." });
+    }
+
+    const user = req.email;
+    const topic = typeof req.body.topic === "string" ? req.body.topic.trim() : "";
+    if (!topic) {
+      return res.status(400).json({ error: "Interview topic is required." });
+    }
+
+    const interview = await Interview.findOne({ user, topic }).sort({ date: -1 });
+    if (!interview) {
+      return res.status(404).json({ error: "Interview transcript not found." });
+    }
+
+    const pairs = buildInterviewPairs(interview.interviewData);
+    if (pairs.length === 0) {
+      return res.status(400).json({ error: "No completed question-answer pairs found." });
+    }
+
+    const prompt = `Evaluate this mock interview for topic "${topic}".
+Return ONLY a JSON object in this exact shape:
+{
+  "mentorComments": [
+    {
+      "question": "Question text",
+      "answer": "Answer text",
+      "comment": "Specific mentor feedback",
+      "score": 1
+    }
+  ],
+  "overallReview": "Overall review paragraph"
+}
+
+Scoring rules:
+1. score is an integer from 1 to 5.
+2. Give one mentorComments item for each question-answer pair.
+3. Comments should be concise, practical, and specific.
+4. Do not use markdown.
+
+Question-answer pairs:
+${JSON.stringify(pairs, null, 2)}`;
+
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [{ role: "user", content: prompt }],
+      model: GROQ_MODEL,
+      response_format: { type: "json_object" }
+    });
+
+    const responseText = chatCompletion.choices[0].message.content;
+    const evaluation = JSON.parse(responseText);
+
+    interview.evaluation = {
+      mentorComments: Array.isArray(evaluation.mentorComments) ? evaluation.mentorComments : [],
+      overallReview: typeof evaluation.overallReview === "string" ? evaluation.overallReview : "",
+    };
+    await interview.save();
+
+    res.json(interview.evaluation);
+  } catch (err) {
+    console.error("Evaluation Error:", err);
+    const isTimeout = err.name === "APIConnectionTimeoutError" || err.code === "ETIMEDOUT";
+    const status = isTimeout ? 504 : err.status || 500;
+    const message = isTimeout
+      ? "Groq evaluation request timed out. Please try again."
+      : err.error?.message || err.message || "Failed to evaluate interview.";
+
+    res.status(status).json({ error: message });
   }
 });
 
