@@ -10,3 +10,4 @@ report/
 *.sarif
 *.sbom.json
 *.cdx.json
+trivy-auth-image.json
