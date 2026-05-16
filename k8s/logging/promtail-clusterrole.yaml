@@ -6,8 +6,6 @@ rules:
   - apiGroups: [""]
     resources:
       - pods
-      - nodes
-      - nodes/proxy
       - services
       - endpoints
     verbs: ["get", "list", "watch"]

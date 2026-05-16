@@ -13,9 +13,20 @@ spec:
         app: promtail
     spec:
       serviceAccountName: promtail
+      securityContext:
+        fsGroup: 10001
       containers:
         - name: promtail
           image: grafana/promtail:2.9.8
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+            runAsGroup: 10001
+            runAsNonRoot: true
+            runAsUser: 10001
           args:
             - -config.file=/etc/promtail/promtail-config.yaml
           volumeMounts:
@@ -26,6 +37,8 @@ spec:
             - name: pods
               mountPath: /var/log/pods
               readOnly: true
+            - name: tmp
+              mountPath: /tmp
       volumes:
         - name: config
           configMap:
@@ -36,3 +49,5 @@ spec:
         - name: pods
           hostPath:
             path: /var/log/pods
+        - name: tmp
+          emptyDir: {}
