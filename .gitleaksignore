@@ -1,0 +1,8 @@
+# Historical leaks fixed in the working tree.
+3c6c09a1ce6c46c3303347f32e83270b77c8899a:docker-compose.yml:gcp-api-key:33
+3c6c09a1ce6c46c3303347f32e83270b77c8899a:docker-compose.yml:generic-api-key:19
+3c6c09a1ce6c46c3303347f32e83270b77c8899a:docker-compose.yml:generic-api-key:32
+af1d3f5cb58d39c4e30f831ac66345807ae74057:k8s/base/secrets.yaml:generic-api-key:10
+f28fa2d64bf6917ffe0dbf510ea223e04a7e791f:k8s/base/secrets.yaml:generic-api-key:10
+f28fa2d64bf6917ffe0dbf510ea223e04a7e791f:k8s/base/secrets.yaml:generic-api-key:8
+f28fa2d64bf6917ffe0dbf510ea223e04a7e791f:k8s/base/secrets.yaml:kubernetes-secret-yaml:2

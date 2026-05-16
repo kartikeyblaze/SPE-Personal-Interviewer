@@ -1,0 +1,7 @@
+---
+# Encrypted with Ansible Vault in real usage.
+# Replace placeholders with real values, then run:
+# ansible-vault encrypt ansible/group_vars/vault.yml
+
+vault_jwt_secret: "change_me_in_production"
+vault_groq_api_key: "change_me_in_production"

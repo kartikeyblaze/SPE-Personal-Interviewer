@@ -2,6 +2,9 @@
 - name: Deploy Microservices with Docker Compose
   hosts: localhost
   connection: local
+  vars_files:
+    - ../group_vars/all.yml
+    - ../group_vars/vault.yml
   vars:
     project_root: "{{ lookup('env', 'PWD') }}" # For local testing, usually a fixed path on a remote server
 
@@ -20,6 +23,8 @@
       template:
         src: "../templates/.env.j2"
         dest: "{{ project_root }}/.env"
+        mode: "0600"
+      no_log: true
 
     - name: Pull latest images and start services
       community.docker.docker_compose_v2:
