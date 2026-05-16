@@ -19,7 +19,7 @@ services:
     build: ./services/auth
     environment:
       - MONGO_URI=mongodb://mongodb:27017/auth_db
-      - JWT_SECRET=${JWT_SECRET:-default_scholar_secret_123}
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
       - PORT=5001
     depends_on:
       mongodb:
@@ -34,8 +34,8 @@ services:
     build: ./services/interview
     environment:
       - MONGO_URI=mongodb://mongodb:27017/interview_db
-      - JWT_SECRET=${JWT_SECRET:-default_scholar_secret_123}
-      - GROQ_API_KEY=${GROQ_API_KEY:-no_key_provided}
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
+      - GROQ_API_KEY=${GROQ_API_KEY:?GROQ_API_KEY is required}
       - GROQ_MODEL=${GROQ_MODEL:-llama-3.3-70b-versatile}
       - GROQ_TIMEOUT_MS=${GROQ_TIMEOUT_MS:-30000}
       - PORT=5002
