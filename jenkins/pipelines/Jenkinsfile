@@ -95,8 +95,11 @@ pipeline {
             steps {
                 script {
                     sh "docker build -t ${IMAGE_AUTH}:${BUILD_NUMBER} services/auth"
+                    sh "docker tag ${IMAGE_AUTH}:${BUILD_NUMBER} ${IMAGE_AUTH}:latest"
                     sh "docker build -t ${IMAGE_INTERVIEW}:${BUILD_NUMBER} services/interview"
+                    sh "docker tag ${IMAGE_INTERVIEW}:${BUILD_NUMBER} ${IMAGE_INTERVIEW}:latest"
                     sh "docker build -t ${IMAGE_FRONTEND}:${BUILD_NUMBER} services/frontend"
+                    sh "docker tag ${IMAGE_FRONTEND}:${BUILD_NUMBER} ${IMAGE_FRONTEND}:latest"
                 }
             }
         }
@@ -147,8 +150,11 @@ pipeline {
             steps {
                 sh 'echo "$DOCKER_HUB_CREDS_PSW" | docker login -u "$DOCKER_HUB_CREDS_USR" --password-stdin'
                 sh "docker push ${IMAGE_AUTH}:${BUILD_NUMBER}"
+                sh "docker push ${IMAGE_AUTH}:latest"
                 sh "docker push ${IMAGE_INTERVIEW}:${BUILD_NUMBER}"
+                sh "docker push ${IMAGE_INTERVIEW}:latest"
                 sh "docker push ${IMAGE_FRONTEND}:${BUILD_NUMBER}"
+                sh "docker push ${IMAGE_FRONTEND}:latest"
             }
         }
 
