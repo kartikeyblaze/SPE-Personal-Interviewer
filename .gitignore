@@ -11,3 +11,4 @@ report/
 trivy-*.json
 services/auth/node_modules/
 services/interview/node_modules/
+.ansible-venv/

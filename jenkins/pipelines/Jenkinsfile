@@ -13,6 +13,7 @@ pipeline {
         SECURITY_REPORT_DIR = 'reports/security'
         SECURITY_SEVERITY = 'HIGH,CRITICAL'
         APP_BASE_URL = 'http://interview.local'
+        ANSIBLE_VENV = '.ansible-venv'
     }
 
     stages {
@@ -160,6 +161,12 @@ pipeline {
 
         stage('Deploy to Kubernetes with Ansible') {
             steps {
+                sh '''
+                python3 -m venv "${ANSIBLE_VENV}"
+                . "${ANSIBLE_VENV}/bin/activate"
+                pip install --upgrade pip
+                pip install --no-cache-dir -r ansible/requirements.txt
+                '''
                 withCredentials([
                     string(credentialsId: 'ansible-vault-password', variable: 'VAULT_PASSWORD'),
                     file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG_FILE')
@@ -169,8 +176,10 @@ pipeline {
                     trap 'rm -f "$tmp_vault_password"' EXIT
                     printf '%s' "$VAULT_PASSWORD" > "$tmp_vault_password"
                     export KUBECONFIG="$KUBECONFIG_FILE"
+                    export ANSIBLE_PYTHON_INTERPRETER="$WORKSPACE/${ANSIBLE_VENV}/bin/python"
                     ansible-playbook ansible/playbooks/deploy.yml \
                         --vault-password-file "$tmp_vault_password" \
+                        -e ansible_python_interpreter="$ANSIBLE_PYTHON_INTERPRETER" \
                         -e image_tag=${BUILD_NUMBER} \
                         -e docker_hub_user=${DOCKER_HUB_CREDS_USR}
                     '''
