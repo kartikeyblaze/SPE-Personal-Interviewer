@@ -15,6 +15,8 @@ pipeline {
         stage('Prepare Security Reports') {
             steps {
                 sh 'mkdir -p "${SECURITY_REPORT_DIR}"'
+				// Log in early so EVERY docker run command below uses the active, fresh PAT
+                sh 'echo "$DOCKER_HUB_CREDS_PSW" | docker login -u "$DOCKER_HUB_CREDS_USR" --password-stdin'
             }
         }
 
@@ -141,7 +143,6 @@ pipeline {
 
         stage('Push to Docker Hub') {
             steps {
-                sh 'echo "$DOCKER_HUB_CREDS_PSW" | docker login -u "$DOCKER_HUB_CREDS_USR" --password-stdin'
                 sh "docker push ${IMAGE_AUTH}:${BUILD_NUMBER}"
                 sh "docker push ${IMAGE_INTERVIEW}:${BUILD_NUMBER}"
                 sh "docker push ${IMAGE_FRONTEND}:${BUILD_NUMBER}"
@@ -151,15 +152,16 @@ pipeline {
         stage('Deploy with Ansible') {
             steps {
                 withCredentials([
-                    string(credentialsId: 'jwt-secret', variable: 'JWT_SECRET'),
-                    string(credentialsId: 'groq-api-key', variable: 'GROQ_API_KEY')
+                    string(credentialsId: 'ansible-vault-password', variable: 'VAULT_PASSWORD')
                 ]) {
                     sh '''
+                    tmp_vault_password="$(mktemp)"
+                    trap 'rm -f "$tmp_vault_password"' EXIT
+                    printf '%s' "$VAULT_PASSWORD" > "$tmp_vault_password"
                     ansible-playbook ansible/playbooks/deploy-compose.yml \
+                        --vault-password-file "$tmp_vault_password" \
                         -e image_tag=${BUILD_NUMBER} \
-                        -e docker_hub_user=${DOCKER_HUB_CREDS_USR} \
-                        -e jwt_secret="$JWT_SECRET" \
-                        -e groq_api_key="$GROQ_API_KEY"
+                        -e docker_hub_user=${DOCKER_HUB_CREDS_USR}
                     '''
                 }
             }
