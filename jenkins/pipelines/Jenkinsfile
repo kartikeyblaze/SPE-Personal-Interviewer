@@ -2,10 +2,10 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_HUB_USER = 'your-docker-hub-username'
-        IMAGE_AUTH = "${DOCKER_HUB_USER}/auth-service"
-        IMAGE_INTERVIEW = "${DOCKER_HUB_USER}/interview-service"
-        IMAGE_FRONTEND = "${DOCKER_HUB_USER}/frontend-service"
+        DOCKER_HUB_CREDS = credentials('docker-hub-creds')
+        IMAGE_AUTH = "${DOCKER_HUB_CREDS_USR}/auth-service"
+        IMAGE_INTERVIEW = "${DOCKER_HUB_CREDS_USR}/interview-service"
+        IMAGE_FRONTEND = "${DOCKER_HUB_CREDS_USR}/frontend-service"
         SECURITY_REPORT_DIR = 'reports/security'
         SECURITY_SEVERITY = 'HIGH,CRITICAL'
         APP_BASE_URL = 'http://localhost'
@@ -141,12 +141,10 @@ pipeline {
 
         stage('Push to Docker Hub') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
-                    sh 'echo "$PASS" | docker login -u "$USER" --password-stdin'
-                    sh "docker push ${IMAGE_AUTH}:${BUILD_NUMBER}"
-                    sh "docker push ${IMAGE_INTERVIEW}:${BUILD_NUMBER}"
-                    sh "docker push ${IMAGE_FRONTEND}:${BUILD_NUMBER}"
-                }
+                sh 'echo "$DOCKER_HUB_CREDS_PSW" | docker login -u "$DOCKER_HUB_CREDS_USR" --password-stdin'
+                sh "docker push ${IMAGE_AUTH}:${BUILD_NUMBER}"
+                sh "docker push ${IMAGE_INTERVIEW}:${BUILD_NUMBER}"
+                sh "docker push ${IMAGE_FRONTEND}:${BUILD_NUMBER}"
             }
         }
 
@@ -159,7 +157,7 @@ pipeline {
                     sh '''
                     ansible-playbook ansible/playbooks/deploy-compose.yml \
                         -e image_tag=${BUILD_NUMBER} \
-                        -e docker_hub_user=${DOCKER_HUB_USER} \
+                        -e docker_hub_user=${DOCKER_HUB_CREDS_USR} \
                         -e jwt_secret="$JWT_SECRET" \
                         -e groq_api_key="$GROQ_API_KEY"
                     '''
