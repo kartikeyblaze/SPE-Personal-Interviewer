@@ -155,17 +155,18 @@ pipeline {
         stage('Deploy to Kubernetes with Ansible') {
             steps {
                 withCredentials([
-                    string(credentialsId: 'jwt-secret', variable: 'JWT_SECRET'),
-                    string(credentialsId: 'groq-api-key', variable: 'GROQ_API_KEY'),
+                    string(credentialsId: 'ansible-vault-password', variable: 'VAULT_PASSWORD'),
                     file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG_FILE')
                 ]) {
                     sh '''
+                    tmp_vault_password="$(mktemp)"
+                    trap 'rm -f "$tmp_vault_password"' EXIT
+                    printf '%s' "$VAULT_PASSWORD" > "$tmp_vault_password"
                     export KUBECONFIG="$KUBECONFIG_FILE"
                     ansible-playbook ansible/playbooks/deploy.yml \
+                        --vault-password-file "$tmp_vault_password" \
                         -e image_tag=${BUILD_NUMBER} \
-                        -e docker_hub_user=${DOCKER_HUB_CREDS_USR} \
-                        -e jwt_secret="$JWT_SECRET" \
-                        -e groq_api_key="$GROQ_API_KEY"
+                        -e docker_hub_user=${DOCKER_HUB_CREDS_USR}
                     '''
                 }
             }

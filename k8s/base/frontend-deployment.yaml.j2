@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: frontend-service
+  namespace: default
   labels:
     app: frontend-service
 spec:
@@ -23,7 +24,7 @@ spec:
       containers:
       - name: frontend-service
         image: "{{ docker_hub_user }}/frontend-service:{{ image_tag }}"
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 80
         livenessProbe:
@@ -54,6 +55,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: frontend-service
+  namespace: default
 spec:
   selector:
     app: frontend-service

@@ -1,14 +1,13 @@
 ---
 - name: Deploy Microservices to Minikube
   hosts: localhost
-  vars:
-    image_tag: "latest"
-    docker_hub_user: "your-docker-hub-username"
-    jwt_secret: "change_me_in_production"
-    groq_api_key: "change_me_in_production"
+  vars_files:
+    - ../group_vars/all.yml
+    - ../group_vars/vault.yml
   
   tasks:
     - name: Apply Application Secrets
+      no_log: true
       kubernetes.core.k8s:
         state: present
         definition:
@@ -16,10 +15,11 @@
           kind: Secret
           metadata:
             name: app-secrets
+            namespace: default
           type: Opaque
           stringData:
-            jwt-secret: "{{ jwt_secret }}"
-            groq-api-key: "{{ groq_api_key }}"
+            jwt-secret: "{{ vault_jwt_secret }}"
+            groq-api-key: "{{ vault_groq_api_key }}"
 
     - name: Apply MongoDB Manifest
       kubernetes.core.k8s:
@@ -45,6 +45,76 @@
       kubernetes.core.k8s:
         state: present
         definition: "{{ lookup('file', '../../k8s/base/ingress.yaml') | from_yaml }}"
+
+    - name: Apply Auth HPA Manifest
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('file', '../../k8s/base/auth-hpa.yaml') | from_yaml }}"
+
+    - name: Apply Interview HPA Manifest
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('file', '../../k8s/base/interview-hpa.yaml') | from_yaml }}"
+
+    - name: Apply Logging Namespace
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('file', '../../k8s/logging/namespace.yaml') | from_yaml }}"
+
+    - name: Apply Loki Config
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('file', '../../k8s/logging/loki-configmap.yaml') | from_yaml }}"
+
+    - name: Apply Loki Service
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('file', '../../k8s/logging/loki-service.yaml') | from_yaml }}"
+
+    - name: Apply Loki StatefulSet
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('file', '../../k8s/logging/loki-statefulset.yaml') | from_yaml }}"
+
+    - name: Apply Promtail Config
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('file', '../../k8s/logging/promtail-configmap.yaml') | from_yaml }}"
+
+    - name: Apply Promtail ServiceAccount
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('file', '../../k8s/logging/promtail-serviceaccount.yaml') | from_yaml }}"
+
+    - name: Apply Promtail ClusterRole
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('file', '../../k8s/logging/promtail-clusterrole.yaml') | from_yaml }}"
+
+    - name: Apply Promtail ClusterRoleBinding
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('file', '../../k8s/logging/promtail-clusterrolebinding.yaml') | from_yaml }}"
+
+    - name: Apply Promtail DaemonSet
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('file', '../../k8s/logging/promtail-daemonset.yaml') | from_yaml }}"
+
+    - name: Apply Grafana Datasources
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('file', '../../k8s/logging/grafana-configmap.yaml') | from_yaml }}"
+
+    - name: Apply Grafana Service
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('file', '../../k8s/logging/grafana-service.yaml') | from_yaml }}"
+
+    - name: Apply Grafana Deployment
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('file', '../../k8s/logging/grafana-deployment.yaml') | from_yaml }}"
 
     - name: Wait for MongoDB rollout
       kubernetes.core.k8s_info:
