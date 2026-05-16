@@ -8,3 +8,6 @@ report/
 *.sarif
 *.sbom.json
 *.cdx.json
+trivy-*.json
+services/auth/node_modules/
+services/interview/node_modules/
