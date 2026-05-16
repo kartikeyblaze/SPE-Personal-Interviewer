@@ -1,4 +1,6 @@
-FROM node:18-alpine
+FROM node:18.20.8-alpine3.21
+RUN apk update && \
+    apk upgrade --no-cache libssl3 libcrypto3
 WORKDIR /app
 COPY package*.json ./
 RUN npm install --production

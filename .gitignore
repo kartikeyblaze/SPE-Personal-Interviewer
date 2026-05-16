@@ -1,8 +1,10 @@
 project-summary-1.md
 implementation-plan.md
+dockerhub-retention-plan.md
 .~lock.*
 *.log
 .env
+node_modules/
 reports/
 report/
 *.sarif
