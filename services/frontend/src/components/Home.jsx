@@ -27,7 +27,7 @@ export const Home = () => {
             animate={{ opacity: 1, y: 0 }}
             className="text-6xl md:text-7xl font-serif text-scholar-brown leading-tight tracking-tight"
           >
-            Refine your <span className="italic">intellect</span> through <span className="text-scholar-green">mentorship</span>.
+            Enrich your <span className="italic">intellect</span> through <span className="text-scholar-green">mentorship</span>.
           </motion.h1>
           
           <motion.p 
